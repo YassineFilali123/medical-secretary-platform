@@ -19,7 +19,15 @@ import DoctorNotificationsPage from "@/pages/doctor/NotificationsPage";
 import DoctorProfilePage from "@/pages/doctor/ProfilePage";
 import DoctorSettingsPage from "@/pages/doctor/SettingsPage";
 import SecretaryDashboard from "@/pages/dashboards/SecretaryDashboard";
-import PatientDashboard from "@/pages/dashboards/PatientDashboard";
+import PatientDashboardPage from "@/pages/patient/DashboardPage";
+import BookAppointmentPage from "@/pages/patient/BookAppointmentPage";
+import MyAppointmentsPage from "@/pages/patient/MyAppointmentsPage";
+import AppointmentDetailsPage from "@/pages/patient/AppointmentDetailsPage";
+import AiAssistantPage from "@/pages/patient/AiAssistantPage";
+import DocumentsPage from "@/pages/patient/DocumentsPage";
+import PatientNotificationsPage from "@/pages/patient/NotificationsPage";
+import PatientProfilePage from "@/pages/patient/ProfilePage";
+import PatientSettingsPage from "@/pages/patient/SettingsPage";
 
 export default function App() {
   return (
@@ -47,7 +55,15 @@ export default function App() {
           <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
           <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
           <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboard />} />
-          <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboard />} />
+          <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
+          <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
+          <Route path={ROUTES.PATIENT_APPOINTMENTS} element={<MyAppointmentsPage />} />
+          <Route path={ROUTES.PATIENT_APPOINTMENT_DETAIL} element={<AppointmentDetailsPage />} />
+          <Route path={ROUTES.PATIENT_AI_ASSISTANT} element={<AiAssistantPage />} />
+          <Route path={ROUTES.PATIENT_DOCUMENTS} element={<DocumentsPage />} />
+          <Route path={ROUTES.PATIENT_NOTIFICATIONS} element={<PatientNotificationsPage />} />
+          <Route path={ROUTES.PATIENT_PROFILE} element={<PatientProfilePage />} />
+          <Route path={ROUTES.PATIENT_SETTINGS} element={<PatientSettingsPage />} />
         </Route>
       </Route>
 

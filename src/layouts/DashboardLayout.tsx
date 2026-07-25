@@ -6,6 +6,7 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  FileText,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -15,7 +16,6 @@ import {
   UserCircle,
   Bot,
   CalendarClock,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,8 +68,10 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   patient: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
     { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
-    { label: "Medical Records", icon: ShieldCheck, path: "/patient/records" },
     { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
+    { label: "Documents", icon: FileText, path: "/patient/documents" },
+    { label: "Notifications", icon: Bell, path: "/patient/notifications" },
+    { label: "Profile", icon: UserCircle, path: "/patient/profile" },
     { label: "Settings", icon: Settings, path: "/patient/settings" },
   ],
 };

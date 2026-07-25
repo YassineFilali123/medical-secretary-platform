@@ -17,4 +17,12 @@ export const ROUTES = {
   DOCTOR_SETTINGS: "/doctor/settings",
   SECRETARY_DASHBOARD: "/secretary/dashboard",
   PATIENT_DASHBOARD: "/patient/dashboard",
+  PATIENT_BOOK: "/patient/appointments/book",
+  PATIENT_APPOINTMENTS: "/patient/appointments",
+  PATIENT_APPOINTMENT_DETAIL: "/patient/appointments/:appointmentId",
+  PATIENT_AI_ASSISTANT: "/patient/ai-assistant",
+  PATIENT_DOCUMENTS: "/patient/documents",
+  PATIENT_NOTIFICATIONS: "/patient/notifications",
+  PATIENT_PROFILE: "/patient/profile",
+  PATIENT_SETTINGS: "/patient/settings",
 } as const;
