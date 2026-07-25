@@ -18,7 +18,17 @@ import AvailabilityPage from "@/pages/doctor/AvailabilityPage";
 import DoctorNotificationsPage from "@/pages/doctor/NotificationsPage";
 import DoctorProfilePage from "@/pages/doctor/ProfilePage";
 import DoctorSettingsPage from "@/pages/doctor/SettingsPage";
-import SecretaryDashboard from "@/pages/dashboards/SecretaryDashboard";
+import SecretaryDashboardPage from "@/pages/secretary/DashboardPage";
+import LiveConversationsPage from "@/pages/secretary/LiveConversationsPage";
+import AppointmentManagementPage from "@/pages/secretary/AppointmentManagementPage";
+import PatientQueuePage from "@/pages/secretary/PatientQueuePage";
+import EmergencyCasesPage from "@/pages/secretary/EmergencyCasesPage";
+import SecretaryCalendarPage from "@/pages/secretary/CalendarPage";
+import AiMonitoringPage from "@/pages/secretary/AiMonitoringPage";
+import CallHistoryPage from "@/pages/secretary/CallHistoryPage";
+import SecretaryNotificationsPage from "@/pages/secretary/NotificationsPage";
+import SecretaryProfilePage from "@/pages/secretary/ProfilePage";
+import SecretarySettingsPage from "@/pages/secretary/SettingsPage";
 import PatientDashboardPage from "@/pages/patient/DashboardPage";
 import BookAppointmentPage from "@/pages/patient/BookAppointmentPage";
 import MyAppointmentsPage from "@/pages/patient/MyAppointmentsPage";
@@ -54,7 +64,17 @@ export default function App() {
           <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
           <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
           <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
-          <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboard />} />
+          <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboardPage />} />
+          <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
+          <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
+          <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
+          <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
+          <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />
+          <Route path={ROUTES.SECRETARY_AI_MONITORING} element={<AiMonitoringPage />} />
+          <Route path={ROUTES.SECRETARY_CALL_HISTORY} element={<CallHistoryPage />} />
+          <Route path={ROUTES.SECRETARY_NOTIFICATIONS} element={<SecretaryNotificationsPage />} />
+          <Route path={ROUTES.SECRETARY_PROFILE} element={<SecretaryProfilePage />} />
+          <Route path={ROUTES.SECRETARY_SETTINGS} element={<SecretarySettingsPage />} />
           <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
           <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
           <Route path={ROUTES.PATIENT_APPOINTMENTS} element={<MyAppointmentsPage />} />

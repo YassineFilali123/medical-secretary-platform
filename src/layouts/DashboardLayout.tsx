@@ -2,20 +2,24 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
+  AlertTriangle,
   Bell,
+  Brain,
   Calendar,
+  CalendarClock,
   ChevronRight,
   Clock,
   FileText,
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquare,
+  Phone,
   Settings,
   Stethoscope,
   Users,
   UserCircle,
   Bot,
-  CalendarClock,
   X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,10 +63,15 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   secretary: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/secretary/dashboard" },
+    { label: "Live Conversations", icon: MessageSquare, path: "/secretary/live-conversations" },
     { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
-    { label: "Patients", icon: Users, path: "/secretary/patients" },
+    { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
+    { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
     { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
-    { label: "AI Assistant", icon: Bot, path: "/secretary/ai-assistant" },
+    { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
+    { label: "Call History", icon: Phone, path: "/secretary/call-history" },
+    { label: "Notifications", icon: Bell, path: "/secretary/notifications" },
+    { label: "Profile", icon: UserCircle, path: "/secretary/profile" },
     { label: "Settings", icon: Settings, path: "/secretary/settings" },
   ],
   patient: [
