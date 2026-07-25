@@ -6,7 +6,18 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
-import AdminDashboard from "@/pages/dashboards/AdminDashboard";
+import AdminDashboardPage from "@/pages/admin/DashboardPage";
+import UserManagementPage from "@/pages/admin/UserManagementPage";
+import UserDetailsPage from "@/pages/admin/UserDetailsPage";
+import RolesAndPermissionsPage from "@/pages/admin/RolesAndPermissionsPage";
+import AiConfigurationPage from "@/pages/admin/AiConfigurationPage";
+import ConversationScenariosPage from "@/pages/admin/ConversationScenariosPage";
+import FaqManagementPage from "@/pages/admin/FaqManagementPage";
+import StatisticsPage from "@/pages/admin/StatisticsPage";
+import ActivityLogsPage from "@/pages/admin/ActivityLogsPage";
+import SystemSettingsPage from "@/pages/admin/SystemSettingsPage";
+import AdminNotificationsPage from "@/pages/admin/NotificationsPage";
+import AdminProfilePage from "@/pages/admin/ProfilePage";
 import DoctorDashboardPage from "@/pages/doctor/DashboardPage";
 import SchedulePage from "@/pages/doctor/SchedulePage";
 import CalendarPage from "@/pages/doctor/CalendarPage";
@@ -52,7 +63,18 @@ export default function App() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
-          <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
+          <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+          <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
+          <Route path={ROUTES.ADMIN_USER_DETAIL} element={<UserDetailsPage />} />
+          <Route path={ROUTES.ADMIN_ROLES} element={<RolesAndPermissionsPage />} />
+          <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
+          <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
+          <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
+          <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
+          <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
+          <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
+          <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
+          <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
           <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
           <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
           <Route path={ROUTES.DOCTOR_CALENDAR} element={<CalendarPage />} />
