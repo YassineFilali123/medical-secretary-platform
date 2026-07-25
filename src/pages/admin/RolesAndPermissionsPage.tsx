@@ -39,8 +39,8 @@ export default function RolesAndPermissionsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Edit3 className="h-3.5 w-3.5" /></button>
-                  <button className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button aria-label="Edit role" className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Edit3 className="h-3.5 w-3.5" /></button>
+                  <button aria-label="Delete role" className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">{r.description}</p>

@@ -89,7 +89,7 @@ export default function AdminNotificationsPage() {
                     </div>
                   </div>
                   {!n.read && (
-                    <button onClick={() => markRead(n.id)} className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
+                    <button onClick={() => markRead(n.id)} className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-accent" aria-label="Mark as read">
                       <CheckCheck className="h-4 w-4" />
                     </button>
                   )}

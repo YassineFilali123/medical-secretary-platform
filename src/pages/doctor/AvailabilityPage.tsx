@@ -119,7 +119,7 @@ export default function AvailabilityPage() {
               onChange={(e) => setNewVacationReason(e.target.value)}
               className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
             />
-            <button onClick={handleAddVacation} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-white">
+            <button onClick={handleAddVacation} aria-label="Add vacation period" className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-white">
               <Plus className="h-4 w-4" />
             </button>
           </div>
@@ -133,7 +133,7 @@ export default function AvailabilityPage() {
                     <div className="text-sm font-medium">{v.date}</div>
                     <div className="text-xs text-muted-foreground">{v.reason}</div>
                   </div>
-                  <button onClick={() => handleRemoveVacation(v.id)} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <button onClick={() => handleRemoveVacation(v.id)} aria-label="Remove vacation period" className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

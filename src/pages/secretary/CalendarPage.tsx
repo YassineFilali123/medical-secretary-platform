@@ -27,13 +27,13 @@ export default function SecretaryCalendarPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => setCurrentDate((d) => addDays(d, -7))} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button onClick={() => setCurrentDate((d) => addDays(d, -7))} aria-label="Previous week" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-sm font-medium min-w-[160px] text-center">
             {format(weekStart, "MMM d")} - {format(addDays(weekStart, 6), "MMM d, yyyy")}
           </span>
-          <button onClick={() => setCurrentDate((d) => addDays(d, 7))} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button onClick={() => setCurrentDate((d) => addDays(d, 7))} aria-label="Next week" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>

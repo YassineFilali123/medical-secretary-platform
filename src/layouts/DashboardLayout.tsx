@@ -50,67 +50,108 @@ type NavItem = {
   path: string;
 };
 
-const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
+type NavGroup = {
+  label?: string;
+  items: NavItem[];
+};
+
+const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
   admin: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { label: "Users", icon: Users, path: "/admin/users" },
-    { label: "Roles & Permissions", icon: Shield, path: "/admin/roles" },
-    { label: "AI Configuration", icon: Cpu, path: "/admin/ai-config" },
-    { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
-    { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
-    { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "Activity Logs", icon: ClipboardList, path: "/admin/activity-logs" },
-    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
-    { label: "Notifications", icon: Bell, path: "/admin/notifications" },
-    { label: "Settings", icon: Settings, path: "/admin/settings" },
-    { label: "Profile", icon: UserCircle, path: "/admin/profile" },
+    { items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+    ]},
+    { label: "Management", items: [
+      { label: "Users", icon: Users, path: "/admin/users" },
+      { label: "Roles & Permissions", icon: Shield, path: "/admin/roles" },
+      { label: "AI Configuration", icon: Cpu, path: "/admin/ai-config" },
+      { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
+    ]},
+    { label: "Insights", items: [
+      { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
+      { label: "Analytics", icon: PieChart, path: "/analytics" },
+      { label: "Activity Logs", icon: ClipboardList, path: "/admin/activity-logs" },
+    ]},
+    { label: "Communication", items: [
+      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
+    ]},
+    { items: [
+      { label: "Notifications", icon: Bell, path: "/admin/notifications" },
+      { label: "Settings", icon: Settings, path: "/admin/settings" },
+      { label: "Profile", icon: UserCircle, path: "/admin/profile" },
+    ]},
   ],
   doctor: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/doctor/dashboard" },
-    { label: "Schedule", icon: CalendarClock, path: "/doctor/schedule" },
-    { label: "Calendar", icon: Calendar, path: "/doctor/calendar" },
-    { label: "Today's Patients", icon: Users, path: "/doctor/today" },
-    { label: "Patients", icon: Stethoscope, path: "/doctor/patients" },
-    { label: "AI Conversations", icon: Bot, path: "/doctor/ai-conversations" },
-    { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
-    { label: "Availability", icon: Clock, path: "/doctor/availability" },
-    { label: "Notifications", icon: Bell, path: "/doctor/notifications" },
-    { label: "Profile", icon: UserCircle, path: "/doctor/profile" },
-    { label: "Settings", icon: Settings, path: "/doctor/settings" },
+    { items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/doctor/dashboard" },
+    ]},
+    { label: "Practice", items: [
+      { label: "Schedule", icon: CalendarClock, path: "/doctor/schedule" },
+      { label: "Calendar", icon: Calendar, path: "/doctor/calendar" },
+      { label: "Today's Patients", icon: Users, path: "/doctor/today" },
+      { label: "Patients", icon: Stethoscope, path: "/doctor/patients" },
+      { label: "Availability", icon: Clock, path: "/doctor/availability" },
+    ]},
+    { label: "AI & Insights", items: [
+      { label: "AI Conversations", icon: Bot, path: "/doctor/ai-conversations" },
+      { label: "Analytics", icon: PieChart, path: "/analytics" },
+      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
+    ]},
+    { items: [
+      { label: "Notifications", icon: Bell, path: "/doctor/notifications" },
+      { label: "Profile", icon: UserCircle, path: "/doctor/profile" },
+      { label: "Settings", icon: Settings, path: "/doctor/settings" },
+    ]},
   ],
   secretary: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/secretary/dashboard" },
-    { label: "Live Dashboard", icon: Radio, path: "/secretary/live-dashboard" },
-    { label: "Active Conversations", icon: MessageSquare, path: "/secretary/active-conversations" },
-    { label: "Call Queue", icon: PhoneCall, path: "/secretary/call-queue" },
-    { label: "Emergency Queue", icon: AlertCircle, path: "/secretary/emergency-queue" },
-    { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
-    { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
-    { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
-    { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
-    { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
-    { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
-    { label: "Call History", icon: Phone, path: "/secretary/call-history" },
-    { label: "Notifications", icon: Bell, path: "/secretary/notifications" },
-    { label: "Profile", icon: UserCircle, path: "/secretary/profile" },
-    { label: "Settings", icon: Settings, path: "/secretary/settings" },
+    { items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/secretary/dashboard" },
+    ]},
+    { label: "Live Operations", items: [
+      { label: "Live Dashboard", icon: Radio, path: "/secretary/live-dashboard" },
+      { label: "Active Conversations", icon: MessageSquare, path: "/secretary/active-conversations" },
+      { label: "Call Queue", icon: PhoneCall, path: "/secretary/call-queue" },
+      { label: "Emergency Queue", icon: AlertCircle, path: "/secretary/emergency-queue" },
+    ]},
+    { label: "Management", items: [
+      { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
+      { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
+      { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
+      { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
+    ]},
+    { label: "AI & Insights", items: [
+      { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
+      { label: "Analytics", icon: PieChart, path: "/analytics" },
+      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
+      { label: "Call History", icon: Phone, path: "/secretary/call-history" },
+    ]},
+    { items: [
+      { label: "Notifications", icon: Bell, path: "/secretary/notifications" },
+      { label: "Profile", icon: UserCircle, path: "/secretary/profile" },
+      { label: "Settings", icon: Settings, path: "/secretary/settings" },
+    ]},
   ],
   patient: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
-    { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
-    { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
-    { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
-    { label: "Documents", icon: FileText, path: "/patient/documents" },
-    { label: "Notifications", icon: Bell, path: "/patient/notifications" },
-    { label: "Profile", icon: UserCircle, path: "/patient/profile" },
-    { label: "Settings", icon: Settings, path: "/patient/settings" },
+    { items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
+    ]},
+    { label: "Health", items: [
+      { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
+      { label: "Documents", icon: FileText, path: "/patient/documents" },
+    ]},
+    { label: "AI & Insights", items: [
+      { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
+      { label: "Analytics", icon: PieChart, path: "/analytics" },
+      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
+    ]},
+    { items: [
+      { label: "Notifications", icon: Bell, path: "/patient/notifications" },
+      { label: "Profile", icon: UserCircle, path: "/patient/profile" },
+      { label: "Settings", icon: Settings, path: "/patient/settings" },
+    ]},
   ],
 };
 
@@ -123,11 +164,52 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+const BREADCRUMB_LABELS: Record<string, string> = {
+  admin: "Admin",
+  doctor: "Doctor",
+  secretary: "Secretary",
+  patient: "Patient",
+  dashboard: "Dashboard",
+  users: "User Management",
+  roles: "Roles & Permissions",
+  "ai-config": "AI Configuration",
+  faqs: "FAQ Library",
+  statistics: "Statistics",
+  analytics: "Analytics",
+  "activity-logs": "Activity Logs",
+  settings: "Settings",
+  profile: "Profile",
+  notifications: "Notifications",
+  schedule: "Schedule",
+  calendar: "Calendar",
+  today: "Today's Patients",
+  patients: "Patients",
+  availability: "Availability",
+  "ai-conversations": "AI Conversations",
+  "ai-chat": "AI Chat",
+  "ai-assistant": "AI Assistant",
+  history: "History",
+  chat: "Chat",
+  "live-dashboard": "Live Dashboard",
+  "active-conversations": "Active Conversations",
+  "call-queue": "Call Queue",
+  "emergency-queue": "Emergency Queue",
+  appointments: "Appointments",
+  "patient-queue": "Patient Queue",
+  "emergency-cases": "Emergency Cases",
+  "ai-monitoring": "AI Monitoring",
+  "call-history": "Call History",
+  documents: "Documents",
+  conversations: "Conversations",
+  "book": "Book Appointment",
+};
+
 function getBreadcrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
   return segments.map((seg, i) => ({
-    label: seg.charAt(0).toUpperCase() + seg.slice(1),
+    label: BREADCRUMB_LABELS[seg] ?? seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " "),
     path: "/" + segments.slice(0, i + 1).join("/"),
+    isLast: i === segments.length - 1,
   }));
 }
 
@@ -139,115 +221,133 @@ export function DashboardLayout() {
 
   if (!user) return null;
 
-  const navItems = ROLE_NAV_ITEMS[user.role] ?? [];
+  const navGroups = ROLE_NAV_GROUPS[user.role] ?? [];
   const breadcrumbs = getBreadcrumbs(location.pathname);
+
+  function isItemActive(path: string): boolean {
+    if (path === "/ai-assistant") return location.pathname.startsWith("/ai-assistant");
+    if (path === "/secretary/active-conversations")
+      return location.pathname.startsWith("/secretary/active-conversations") || location.pathname.startsWith("/secretary/conversations");
+    if (path === "/analytics") return location.pathname === "/analytics" || location.pathname.startsWith("/analytics/");
+    if (path.startsWith("/secretary/") && path !== "/secretary/dashboard")
+      return location.pathname === path || location.pathname.startsWith(path + "/");
+    return location.pathname === path;
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        aria-label="Sidebar navigation"
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5 focus-ring rounded-lg" aria-label="Med Secretary Home">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-white">
-              <Activity className="h-4 w-4" strokeWidth={2.5} />
+              <Activity className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Med Secretary</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent lg:hidden"
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent focus-ring lg:hidden"
+            aria-label="Close sidebar"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {navItems.map((item) => {
-            const isActive =
-              item.path === "/ai-assistant"
-                ? location.pathname.startsWith("/ai-assistant")
-                : item.path === "/secretary/active-conversations"
-                ? location.pathname.startsWith("/secretary/active-conversations") || location.pathname.startsWith("/secretary/conversations")
-                : item.path === "/analytics"
-                ? location.pathname === "/analytics" || location.pathname.startsWith("/analytics/")
-                : item.path.startsWith("/secretary/") && item.path !== "/secretary/dashboard"
-                ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
-                : location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-4 overflow-y-auto p-3" aria-label="Main navigation">
+          {navGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {group.label}
+                </div>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = isItemActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setSidebarOpen(false)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-border p-3">
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-ring"
+            aria-label="Log out"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             Log out
           </button>
         </div>
       </aside>
 
-      {/* Main area */}
       <div className="flex flex-1 flex-col">
-        {/* Top navbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-background/80 px-4 backdrop-blur-md lg:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="mr-3 grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent lg:hidden"
+            className="mr-3 grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent focus-ring lg:hidden"
+            aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Breadcrumb */}
-          <nav className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+          <nav className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, i) => (
-              <span key={crumb.path} className="flex items-center gap-2">
-                {i > 0 && <ChevronRight className="h-3.5 w-3.5" />}
-                <Link to={crumb.path} className="hover:text-foreground">
-                  {crumb.label}
-                </Link>
+              <span key={crumb.path} className="flex items-center gap-1.5">
+                {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" aria-hidden="true" />}
+                {crumb.isLast ? (
+                  <span className="font-medium text-foreground">{crumb.label}</span>
+                ) : (
+                  <Link to={crumb.path} className="rounded-md px-1 py-0.5 transition-colors hover:text-foreground focus-ring">
+                    {crumb.label}
+                  </Link>
+                )}
               </span>
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
-            {/* Notifications */}
-            <button className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent">
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent focus-ring"
+              aria-label="Notifications"
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 grid h-2 w-2 place-items-center rounded-full bg-destructive" />
+              <span className="absolute right-2 top-2 grid h-2 w-2 place-items-center rounded-full bg-destructive" aria-label="New notifications" />
             </button>
 
-            {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg p-1 hover:bg-accent">
+                <button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-accent focus-ring" aria-label="User menu">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                       {getInitials(user.name)}
@@ -266,12 +366,12 @@ export function DashboardLayout() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate(`/${user.role}/settings`)}>
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4" aria-hidden="true" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} className="text-destructive">
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -279,8 +379,7 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 animate-fade-in">
           <Outlet />
         </main>
       </div>

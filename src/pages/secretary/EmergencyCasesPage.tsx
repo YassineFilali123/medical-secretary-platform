@@ -93,7 +93,7 @@ export default function EmergencyCasesPage() {
                       <option value="" disabled>Assign doctor...</option>
                       {DOCTORS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
-                    <button onClick={() => handleResolve(e.id)} className="rounded-lg bg-green-100 p-2 text-green-700 hover:bg-green-200">
+                    <button onClick={() => handleResolve(e.id)} aria-label="Resolve case" className="rounded-lg bg-green-100 p-2 text-green-700 hover:bg-green-200">
                       <CheckCircle className="h-4 w-4" />
                     </button>
                   </>

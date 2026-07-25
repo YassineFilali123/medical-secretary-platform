@@ -1,22 +1,8 @@
 import { useState } from "react";
 import { Bell, Globe, Moon, Sun, Shield } from "lucide-react";
-
-function SettingRow({ icon: Icon, title, description, children }: { icon: React.ElementType; title: string; description: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border p-4">
-      <div className="flex items-start gap-3">
-        <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <div className="text-sm font-medium">{title}</div>
-          <div className="text-xs text-muted-foreground">{description}</div>
-        </div>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
-}
+import { SettingRow } from "@/components/shared/SettingRow";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function PatientSettingsPage() {
   const [theme, setTheme] = useState("light");
@@ -30,9 +16,14 @@ export default function PatientSettingsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> Language</h2>
+        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Globe className="h-4 w-4 text-primary" aria-hidden="true" /> Language</h2>
         <SettingRow icon={Globe} title="Interface Language" description="Choose your preferred language">
-          <select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-2 text-sm">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Interface language"
+            className="h-9 rounded-lg border border-input bg-background px-2 text-sm focus-ring"
+          >
             <option value="en">English</option>
             <option value="fr">Fran&ccedil;ais</option>
             <option value="es">Espa&ntilde;ol</option>
@@ -43,10 +34,15 @@ export default function PatientSettingsPage() {
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <h2 className="mb-4 text-base font-semibold flex items-center gap-2">
-          {theme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />} Theme
+          {theme === "dark" ? <Moon className="h-4 w-4 text-primary" aria-hidden="true" /> : <Sun className="h-4 w-4 text-primary" aria-hidden="true" />} Theme
         </h2>
         <SettingRow icon={theme === "dark" ? Moon : Sun} title="Color Theme" description="Switch between light and dark mode">
-          <select value={theme} onChange={(e) => setTheme(e.target.value)} className="h-9 rounded-lg border border-input bg-background px-2 text-sm">
+          <select
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            aria-label="Color theme"
+            className="h-9 rounded-lg border border-input bg-background px-2 text-sm focus-ring"
+          >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
             <option value="system">System</option>
@@ -55,29 +51,44 @@ export default function PatientSettingsPage() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Bell className="h-4 w-4 text-primary" /> Notifications</h2>
+        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Bell className="h-4 w-4 text-primary" aria-hidden="true" /> Notifications</h2>
         <div className="space-y-2">
           <SettingRow icon={Bell} title="Appointment Reminders" description="Get notified about upcoming appointments">
-            <input type="checkbox" checked={notifyApps} onChange={(e) => setNotifyApps(e.target.checked)} className="h-4 w-4 rounded border-primary text-primary" />
+            <Checkbox
+              id="notify-appointments"
+              checked={notifyApps}
+              onCheckedChange={(checked) => setNotifyApps(checked === true)}
+              aria-label="Appointment reminders"
+            />
           </SettingRow>
           <SettingRow icon={Bell} title="Messages" description="Receive messages from your doctor">
-            <input type="checkbox" checked={notifyMessages} onChange={(e) => setNotifyMessages(e.target.checked)} className="h-4 w-4 rounded border-primary text-primary" />
+            <Checkbox
+              id="notify-messages"
+              checked={notifyMessages}
+              onCheckedChange={(checked) => setNotifyMessages(checked === true)}
+              aria-label="Message notifications"
+            />
           </SettingRow>
           <SettingRow icon={Bell} title="Health Reminders" description="Get medication and health tips reminders">
-            <input type="checkbox" checked={notifyReminders} onChange={(e) => setNotifyReminders(e.target.checked)} className="h-4 w-4 rounded border-primary text-primary" />
+            <Checkbox
+              id="notify-reminders"
+              checked={notifyReminders}
+              onCheckedChange={(checked) => setNotifyReminders(checked === true)}
+              aria-label="Health reminders"
+            />
           </SettingRow>
         </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Privacy</h2>
+        <h2 className="mb-4 text-base font-semibold flex items-center gap-2"><Shield className="h-4 w-4 text-primary" aria-hidden="true" /> Privacy</h2>
         <p className="text-sm text-muted-foreground">
           Your medical data is encrypted and handled according to HIPAA and GDPR standards. We never share your information without explicit consent.
         </p>
         <div className="mt-4 rounded-xl bg-primary/5 p-3">
-          <p className="text-xs text-muted-foreground">
+          <Label className="text-xs text-muted-foreground">
             You can request a full copy of your data or delete your account from the Privacy section in your account settings.
-          </p>
+          </Label>
         </div>
       </div>
     </div>

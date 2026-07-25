@@ -51,11 +51,11 @@ export default function FaqManagementPage() {
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.answer}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"><Edit3 className="h-4 w-4" /></button>
-                <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
+                <button aria-label="Edit FAQ" className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"><Edit3 className="h-4 w-4" /></button>
+                <button aria-label="Toggle active" className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
                   {f.active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4" />}
                 </button>
-                <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                <button aria-label="Delete FAQ" className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           </div>

@@ -139,6 +139,7 @@ export default function AiAssistantPage() {
               className="h-11 rounded-xl"
             />
             <button
+              aria-label="Send message"
               onClick={handleSend}
               disabled={!input.trim() || isTyping}
               className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-primary text-white shadow-soft disabled:opacity-50"

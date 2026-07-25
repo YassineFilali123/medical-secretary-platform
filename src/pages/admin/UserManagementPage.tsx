@@ -99,13 +99,13 @@ export default function UserManagementPage() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">{u.lastLogin}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
+                      <button aria-label="Edit user" className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
                         <Edit3 className="h-4 w-4" />
                       </button>
-                      <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
+                      <button aria-label="Toggle status" className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent">
                         {u.status === "active" ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4" />}
                       </button>
-                      <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <button aria-label="Delete user" className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -122,7 +122,7 @@ export default function UserManagementPage() {
           Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}-{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
         </span>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-50">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-50">
             <ChevronLeft className="h-4 w-4" />
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -130,7 +130,7 @@ export default function UserManagementPage() {
               {p}
             </button>
           ))}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-50">
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-50">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>

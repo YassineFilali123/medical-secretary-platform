@@ -48,9 +48,9 @@ export default function ConversationScenariosPage() {
                   {s.active ? "Active" : "Inactive"}
                 </span>
                 <div className="flex gap-1">
-                  <button className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
-                  <button className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Edit3 className="h-3.5 w-3.5" /></button>
-                  <button className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button aria-label="View scenario" className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Eye className="h-3.5 w-3.5" /></button>
+                  <button aria-label="Edit scenario" className="rounded-lg p-1 text-muted-foreground hover:bg-accent"><Edit3 className="h-3.5 w-3.5" /></button>
+                  <button aria-label="Delete scenario" className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             </button>
@@ -65,7 +65,7 @@ export default function ConversationScenariosPage() {
                   <h2 className="text-base font-semibold">{selected.title}</h2>
                   <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryColors[selected.category]}`}>{selected.category}</span>
                 </div>
-                <button className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-accent">
+                <button aria-label="Toggle active" className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-accent">
                   {selected.active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4" />}
                 </button>
               </div>

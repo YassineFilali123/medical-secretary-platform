@@ -73,7 +73,7 @@ export default function PatientQueuePage() {
                 <span className="text-sm font-medium text-amber-600">{p.estimatedWait} min</span>
               </div>
               <div className="flex items-center gap-1">
-                <button className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent">
+                <button aria-label="View patient details" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent">
                   <User className="h-4 w-4" />
                 </button>
                 {p.priority === "high" && <AlertTriangle className="h-4 w-4 text-destructive" />}

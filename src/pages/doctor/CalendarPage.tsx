@@ -39,11 +39,11 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} aria-label="Previous month" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-sm font-medium min-w-[160px] text-center">{format(currentMonth, "MMMM yyyy")}</span>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} aria-label="Next month" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>

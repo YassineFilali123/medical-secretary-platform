@@ -10,7 +10,7 @@ type StatCardProps = {
 
 export function StatCard({ icon: Icon, label, value, sub, color }: StatCardProps): ReactElement {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-shadow duration-200 hover:shadow-elevated">
       <div className="flex items-center justify-between">
         <div className={`grid h-10 w-10 place-items-center rounded-xl ${color}`}>
           <Icon className="h-5 w-5 text-white" />

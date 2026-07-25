@@ -95,16 +95,16 @@ export default function LiveConversationsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-accent">
+                  <button aria-label="Call patient" className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-accent">
                     <Phone className="h-4 w-4" />
                   </button>
-                  <button className="rounded-lg bg-primary/10 p-2 text-primary hover:bg-primary/20">
+                  <button aria-label="Assign doctor" className="rounded-lg bg-primary/10 p-2 text-primary hover:bg-primary/20">
                     <UserCheck className="h-4 w-4" />
                   </button>
-                  <button className="rounded-lg bg-amber-100 p-2 text-amber-700 hover:bg-amber-200">
+                  <button aria-label="Transfer call" className="rounded-lg bg-amber-100 p-2 text-amber-700 hover:bg-amber-200">
                     <ArrowRight className="h-4 w-4" />
                   </button>
-                  <button className="rounded-lg bg-destructive/10 p-2 text-destructive hover:bg-destructive/20">
+                  <button aria-label="Close conversation" className="rounded-lg bg-destructive/10 p-2 text-destructive hover:bg-destructive/20">
                     <XCircle className="h-4 w-4" />
                   </button>
                 </div>
