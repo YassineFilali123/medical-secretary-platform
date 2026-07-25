@@ -13,6 +13,7 @@ export const ROUTES = {
   ADMIN_STATISTICS: "/admin/statistics",
   ADMIN_ACTIVITY_LOGS: "/admin/activity-logs",
   ADMIN_SETTINGS: "/admin/settings",
+  ADMIN_APPOINTMENTS: "/admin/appointments",
   ADMIN_NOTIFICATIONS: "/admin/notifications",
   ADMIN_PROFILE: "/admin/profile",
   DOCTOR_DASHBOARD: "/doctor/dashboard",
@@ -46,4 +47,8 @@ export const ROUTES = {
   PATIENT_NOTIFICATIONS: "/patient/notifications",
   PATIENT_PROFILE: "/patient/profile",
   PATIENT_SETTINGS: "/patient/settings",
+  AI_CHAT: "/ai-chat",
+  AI_ASSISTANT_HOME: "/ai-assistant",
+  AI_ASSISTANT_CHAT: "/ai-assistant/chat",
+  AI_ASSISTANT_HISTORY: "/ai-assistant/history",
 } as const;

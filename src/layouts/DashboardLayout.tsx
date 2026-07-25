@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  MessageCircle,
   Phone,
   Settings,
   Shield,
@@ -54,6 +55,8 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
     { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
     { label: "Activity Logs", icon: ClipboardList, path: "/admin/activity-logs" },
+    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Notifications", icon: Bell, path: "/admin/notifications" },
     { label: "Settings", icon: Settings, path: "/admin/settings" },
     { label: "Profile", icon: UserCircle, path: "/admin/profile" },
@@ -65,6 +68,8 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Today's Patients", icon: Users, path: "/doctor/today" },
     { label: "Patients", icon: Stethoscope, path: "/doctor/patients" },
     { label: "AI Conversations", icon: Bot, path: "/doctor/ai-conversations" },
+    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Availability", icon: Clock, path: "/doctor/availability" },
     { label: "Notifications", icon: Bell, path: "/doctor/notifications" },
     { label: "Profile", icon: UserCircle, path: "/doctor/profile" },
@@ -78,6 +83,8 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
     { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
     { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
+    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Call History", icon: Phone, path: "/secretary/call-history" },
     { label: "Notifications", icon: Bell, path: "/secretary/notifications" },
     { label: "Profile", icon: UserCircle, path: "/secretary/profile" },
@@ -87,6 +94,8 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
     { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
     { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
+    { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
+    { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Documents", icon: FileText, path: "/patient/documents" },
     { label: "Notifications", icon: Bell, path: "/patient/notifications" },
     { label: "Profile", icon: UserCircle, path: "/patient/profile" },
@@ -155,7 +164,10 @@ export function DashboardLayout() {
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              item.path === "/ai-assistant"
+                ? location.pathname.startsWith("/ai-assistant")
+                : location.pathname === item.path;
             return (
               <Link
                 key={item.path}

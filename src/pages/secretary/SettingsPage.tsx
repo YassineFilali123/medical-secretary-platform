@@ -1,29 +1,6 @@
 import { useState } from "react";
 import { Bell, Globe, Moon, Sun, Shield } from "lucide-react";
-
-type SettingRowProps = {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-};
-
-function SettingRow({ icon: Icon, title, description, children }: SettingRowProps) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border p-4">
-      <div className="flex items-start gap-3">
-        <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <div className="text-sm font-medium">{title}</div>
-          <div className="text-xs text-muted-foreground">{description}</div>
-        </div>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
-}
+import { SettingRow } from "@/components/shared/SettingRow";
 
 export default function SecretarySettingsPage() {
   const [theme, setTheme] = useState("light");

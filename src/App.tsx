@@ -1,115 +1,144 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Routes, Route, Outlet } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { LoadingScreen } from "@/components/shared/LoadingScreen";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
-import AdminDashboardPage from "@/pages/admin/DashboardPage";
-import UserManagementPage from "@/pages/admin/UserManagementPage";
-import UserDetailsPage from "@/pages/admin/UserDetailsPage";
-import RolesAndPermissionsPage from "@/pages/admin/RolesAndPermissionsPage";
-import AiConfigurationPage from "@/pages/admin/AiConfigurationPage";
-import ConversationScenariosPage from "@/pages/admin/ConversationScenariosPage";
-import FaqManagementPage from "@/pages/admin/FaqManagementPage";
-import StatisticsPage from "@/pages/admin/StatisticsPage";
-import ActivityLogsPage from "@/pages/admin/ActivityLogsPage";
-import SystemSettingsPage from "@/pages/admin/SystemSettingsPage";
-import AdminNotificationsPage from "@/pages/admin/NotificationsPage";
-import AdminProfilePage from "@/pages/admin/ProfilePage";
-import DoctorDashboardPage from "@/pages/doctor/DashboardPage";
-import SchedulePage from "@/pages/doctor/SchedulePage";
-import CalendarPage from "@/pages/doctor/CalendarPage";
-import TodaysAppointmentsPage from "@/pages/doctor/TodaysAppointmentsPage";
-import PatientsPage from "@/pages/doctor/PatientsPage";
-import PatientDetailsPage from "@/pages/doctor/PatientDetailsPage";
-import AiConversationsPage from "@/pages/doctor/AiConversationsPage";
-import AvailabilityPage from "@/pages/doctor/AvailabilityPage";
-import DoctorNotificationsPage from "@/pages/doctor/NotificationsPage";
-import DoctorProfilePage from "@/pages/doctor/ProfilePage";
-import DoctorSettingsPage from "@/pages/doctor/SettingsPage";
-import SecretaryDashboardPage from "@/pages/secretary/DashboardPage";
-import LiveConversationsPage from "@/pages/secretary/LiveConversationsPage";
-import AppointmentManagementPage from "@/pages/secretary/AppointmentManagementPage";
-import PatientQueuePage from "@/pages/secretary/PatientQueuePage";
-import EmergencyCasesPage from "@/pages/secretary/EmergencyCasesPage";
-import SecretaryCalendarPage from "@/pages/secretary/CalendarPage";
-import AiMonitoringPage from "@/pages/secretary/AiMonitoringPage";
-import CallHistoryPage from "@/pages/secretary/CallHistoryPage";
-import SecretaryNotificationsPage from "@/pages/secretary/NotificationsPage";
-import SecretaryProfilePage from "@/pages/secretary/ProfilePage";
-import SecretarySettingsPage from "@/pages/secretary/SettingsPage";
-import PatientDashboardPage from "@/pages/patient/DashboardPage";
-import BookAppointmentPage from "@/pages/patient/BookAppointmentPage";
-import MyAppointmentsPage from "@/pages/patient/MyAppointmentsPage";
-import AppointmentDetailsPage from "@/pages/patient/AppointmentDetailsPage";
-import AiAssistantPage from "@/pages/patient/AiAssistantPage";
-import DocumentsPage from "@/pages/patient/DocumentsPage";
-import PatientNotificationsPage from "@/pages/patient/NotificationsPage";
-import PatientProfilePage from "@/pages/patient/ProfilePage";
-import PatientSettingsPage from "@/pages/patient/SettingsPage";
+import NotFoundPage from "@/pages/NotFoundPage";
+
+const AdminDashboardPage = lazy(() => import("@/pages/admin/DashboardPage"));
+const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
+const UserDetailsPage = lazy(() => import("@/pages/admin/UserDetailsPage"));
+const RolesAndPermissionsPage = lazy(() => import("@/pages/admin/RolesAndPermissionsPage"));
+const AiConfigurationPage = lazy(() => import("@/pages/admin/AiConfigurationPage"));
+const ConversationScenariosPage = lazy(() => import("@/pages/admin/ConversationScenariosPage"));
+const FaqManagementPage = lazy(() => import("@/pages/admin/FaqManagementPage"));
+const StatisticsPage = lazy(() => import("@/pages/admin/StatisticsPage"));
+const ActivityLogsPage = lazy(() => import("@/pages/admin/ActivityLogsPage"));
+const SystemSettingsPage = lazy(() => import("@/pages/admin/SystemSettingsPage"));
+const AdminNotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
+const AdminProfilePage = lazy(() => import("@/pages/admin/ProfilePage"));
+const AdminAppointmentListPage = lazy(() => import("@/pages/admin/AppointmentListPage"));
+
+const DoctorDashboardPage = lazy(() => import("@/pages/doctor/DashboardPage"));
+const SchedulePage = lazy(() => import("@/pages/doctor/SchedulePage"));
+const DoctorCalendarPage = lazy(() => import("@/pages/doctor/CalendarPage"));
+const TodaysAppointmentsPage = lazy(() => import("@/pages/doctor/TodaysAppointmentsPage"));
+const DoctorPatientsPage = lazy(() => import("@/pages/doctor/PatientsPage"));
+const PatientDetailsPage = lazy(() => import("@/pages/doctor/PatientDetailsPage"));
+const DoctorAiConversationsPage = lazy(() => import("@/pages/doctor/AiConversationsPage"));
+const AvailabilityPage = lazy(() => import("@/pages/doctor/AvailabilityPage"));
+const DoctorNotificationsPage = lazy(() => import("@/pages/doctor/NotificationsPage"));
+const DoctorProfilePage = lazy(() => import("@/pages/doctor/ProfilePage"));
+const DoctorSettingsPage = lazy(() => import("@/pages/doctor/SettingsPage"));
+
+const SecretaryDashboardPage = lazy(() => import("@/pages/secretary/DashboardPage"));
+const LiveConversationsPage = lazy(() => import("@/pages/secretary/LiveConversationsPage"));
+const AppointmentManagementPage = lazy(() => import("@/pages/secretary/AppointmentManagementPage"));
+const PatientQueuePage = lazy(() => import("@/pages/secretary/PatientQueuePage"));
+const EmergencyCasesPage = lazy(() => import("@/pages/secretary/EmergencyCasesPage"));
+const SecretaryCalendarPage = lazy(() => import("@/pages/secretary/CalendarPage"));
+const AiMonitoringPage = lazy(() => import("@/pages/secretary/AiMonitoringPage"));
+const CallHistoryPage = lazy(() => import("@/pages/secretary/CallHistoryPage"));
+const SecretaryNotificationsPage = lazy(() => import("@/pages/secretary/NotificationsPage"));
+const SecretaryProfilePage = lazy(() => import("@/pages/secretary/ProfilePage"));
+const SecretarySettingsPage = lazy(() => import("@/pages/secretary/SettingsPage"));
+
+const PatientDashboardPage = lazy(() => import("@/pages/patient/DashboardPage"));
+const BookAppointmentPage = lazy(() => import("@/pages/patient/BookAppointmentPage"));
+const MyAppointmentsPage = lazy(() => import("@/pages/patient/MyAppointmentsPage"));
+const AppointmentDetailsPage = lazy(() => import("@/pages/patient/AppointmentDetailsPage"));
+const AiAssistantPage = lazy(() => import("@/pages/patient/AiAssistantPage"));
+const DocumentsPage = lazy(() => import("@/pages/patient/DocumentsPage"));
+const PatientNotificationsPage = lazy(() => import("@/pages/patient/NotificationsPage"));
+const PatientProfilePage = lazy(() => import("@/pages/patient/ProfilePage"));
+const PatientSettingsPage = lazy(() => import("@/pages/patient/SettingsPage"));
+const AiChatPage = lazy(() => import("@/pages/shared/AiChatPage"));
+const AiAssistantHomePage = lazy(() => import("@/pages/shared/AiAssistantHomePage"));
+const AiConversationPage = lazy(() => import("@/pages/shared/AiConversationPage"));
+const AiConversationHistoryPage = lazy(() => import("@/pages/shared/AiConversationHistory"));
+
+const SuspenseWrapper = () => (
+  <Suspense fallback={<LoadingScreen />}>
+    <Outlet />
+  </Suspense>
+);
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route element={<PublicRoute />}>
-        <Route path={ROUTES.HOME} element={<HomePage />} />
-        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-      </Route>
-
-      {/* Protected routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-          <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
-          <Route path={ROUTES.ADMIN_USER_DETAIL} element={<UserDetailsPage />} />
-          <Route path={ROUTES.ADMIN_ROLES} element={<RolesAndPermissionsPage />} />
-          <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
-          <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
-          <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
-          <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
-          <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
-          <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
-          <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
-          <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
-          <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
-          <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
-          <Route path={ROUTES.DOCTOR_CALENDAR} element={<CalendarPage />} />
-          <Route path={ROUTES.DOCTOR_TODAY} element={<TodaysAppointmentsPage />} />
-          <Route path={ROUTES.DOCTOR_PATIENTS} element={<PatientsPage />} />
-          <Route path={ROUTES.DOCTOR_PATIENT_DETAIL} element={<PatientDetailsPage />} />
-          <Route path={ROUTES.DOCTOR_AI_CONVERSATIONS} element={<AiConversationsPage />} />
-          <Route path={ROUTES.DOCTOR_AVAILABILITY} element={<AvailabilityPage />} />
-          <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
-          <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
-          <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
-          <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboardPage />} />
-          <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
-          <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
-          <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
-          <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
-          <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />
-          <Route path={ROUTES.SECRETARY_AI_MONITORING} element={<AiMonitoringPage />} />
-          <Route path={ROUTES.SECRETARY_CALL_HISTORY} element={<CallHistoryPage />} />
-          <Route path={ROUTES.SECRETARY_NOTIFICATIONS} element={<SecretaryNotificationsPage />} />
-          <Route path={ROUTES.SECRETARY_PROFILE} element={<SecretaryProfilePage />} />
-          <Route path={ROUTES.SECRETARY_SETTINGS} element={<SecretarySettingsPage />} />
-          <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
-          <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
-          <Route path={ROUTES.PATIENT_APPOINTMENTS} element={<MyAppointmentsPage />} />
-          <Route path={ROUTES.PATIENT_APPOINTMENT_DETAIL} element={<AppointmentDetailsPage />} />
-          <Route path={ROUTES.PATIENT_AI_ASSISTANT} element={<AiAssistantPage />} />
-          <Route path={ROUTES.PATIENT_DOCUMENTS} element={<DocumentsPage />} />
-          <Route path={ROUTES.PATIENT_NOTIFICATIONS} element={<PatientNotificationsPage />} />
-          <Route path={ROUTES.PATIENT_PROFILE} element={<PatientProfilePage />} />
-          <Route path={ROUTES.PATIENT_SETTINGS} element={<PatientSettingsPage />} />
+    <ErrorBoundary>
+      <Routes>
+        <Route element={<PublicRoute />}>
+          <Route path={ROUTES.HOME} element={<HomePage />} />
+          <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
         </Route>
-      </Route>
 
-      <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-    </Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route element={<SuspenseWrapper />}>
+              <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+              <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
+              <Route path={ROUTES.ADMIN_USER_DETAIL} element={<UserDetailsPage />} />
+              <Route path={ROUTES.ADMIN_ROLES} element={<RolesAndPermissionsPage />} />
+              <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
+              <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
+              <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
+              <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
+              <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
+              <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
+              <Route path={ROUTES.ADMIN_APPOINTMENTS} element={<AdminAppointmentListPage />} />
+              <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
+              <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
+              <Route path={ROUTES.AI_CHAT} element={<AiChatPage />} />
+              <Route path={ROUTES.AI_ASSISTANT_HOME} element={<AiAssistantHomePage />} />
+              <Route path={`${ROUTES.AI_ASSISTANT_CHAT}/:conversationId?`} element={<AiConversationPage />} />
+              <Route path={ROUTES.AI_ASSISTANT_HISTORY} element={<AiConversationHistoryPage />} />
+
+              <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
+              <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
+              <Route path={ROUTES.DOCTOR_CALENDAR} element={<DoctorCalendarPage />} />
+              <Route path={ROUTES.DOCTOR_TODAY} element={<TodaysAppointmentsPage />} />
+              <Route path={ROUTES.DOCTOR_PATIENTS} element={<DoctorPatientsPage />} />
+              <Route path={ROUTES.DOCTOR_PATIENT_DETAIL} element={<PatientDetailsPage />} />
+              <Route path={ROUTES.DOCTOR_AI_CONVERSATIONS} element={<DoctorAiConversationsPage />} />
+              <Route path={ROUTES.DOCTOR_AVAILABILITY} element={<AvailabilityPage />} />
+              <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
+              <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
+              <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
+
+              <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboardPage />} />
+              <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
+              <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
+              <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
+              <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
+              <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />
+              <Route path={ROUTES.SECRETARY_AI_MONITORING} element={<AiMonitoringPage />} />
+              <Route path={ROUTES.SECRETARY_CALL_HISTORY} element={<CallHistoryPage />} />
+              <Route path={ROUTES.SECRETARY_NOTIFICATIONS} element={<SecretaryNotificationsPage />} />
+              <Route path={ROUTES.SECRETARY_PROFILE} element={<SecretaryProfilePage />} />
+              <Route path={ROUTES.SECRETARY_SETTINGS} element={<SecretarySettingsPage />} />
+
+              <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
+              <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
+              <Route path={ROUTES.PATIENT_APPOINTMENTS} element={<MyAppointmentsPage />} />
+              <Route path={ROUTES.PATIENT_APPOINTMENT_DETAIL} element={<AppointmentDetailsPage />} />
+              <Route path={ROUTES.PATIENT_AI_ASSISTANT} element={<AiAssistantPage />} />
+              <Route path={ROUTES.PATIENT_DOCUMENTS} element={<DocumentsPage />} />
+              <Route path={ROUTES.PATIENT_NOTIFICATIONS} element={<PatientNotificationsPage />} />
+              <Route path={ROUTES.PATIENT_PROFILE} element={<PatientProfilePage />} />
+              <Route path={ROUTES.PATIENT_SETTINGS} element={<PatientSettingsPage />} />
+            </Route>
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }

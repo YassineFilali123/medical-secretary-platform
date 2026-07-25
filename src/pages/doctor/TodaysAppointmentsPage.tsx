@@ -1,92 +1,109 @@
-import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Search, Clock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CalendarDays, CheckCircle, Clock, XCircle, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { doctorService } from "@/services/doctor";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatCard } from "@/components/shared/StatCard";
+import { appointmentService } from "@/services/appointments";
+import { AppointmentStatusBadge, AppointmentDetailsModal, CancelAppointmentModal } from "@/components/appointments";
+import type { Appointment } from "@/types/appointment";
+import { format } from "date-fns";
 
-const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  "in-progress": "bg-amber-100 text-amber-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
-const typeColors: Record<string, string> = {
-  consultation: "bg-purple-100 text-purple-700",
-  "follow-up": "bg-teal-100 text-teal-700",
-  emergency: "bg-red-100 text-red-700",
-  checkup: "bg-sky-100 text-sky-700",
-};
+const DOCTOR_ID = "d1";
 
 export default function TodaysAppointmentsPage() {
+  const [appointments, setAppointments] = useState(() => {
+    const all = appointmentService.getAppointmentsByDoctor(DOCTOR_ID);
+    const today = format(new Date(), "yyyy-MM-dd");
+    return all.filter((a) => a.date === today);
+  });
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  const appointments = useMemo(() => doctorService.getTodaysAppointments(), []);
+  const [detailsAppt, setDetailsAppt] = useState<Appointment | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
 
   const filtered = useMemo(() => {
-    return appointments.filter((a) => {
-      const matchesSearch = a.patientName.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [appointments, search, statusFilter]);
+    let result = appointments;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((a) => a.patientName.toLowerCase().includes(q) || a.reason.toLowerCase().includes(q));
+    }
+    return result.sort((a, b) => a.time.localeCompare(b.time));
+  }, [appointments, search]);
+
+  const stats = appointmentService.getStatusCounts(appointments);
+
+  const refresh = () => {
+    const all = appointmentService.getAppointmentsByDoctor(DOCTOR_ID);
+    const today = format(new Date(), "yyyy-MM-dd");
+    setAppointments(all.filter((a) => a.date === today));
+  };
+
+  const handleAction = (appt: Appointment, action: "confirmed" | "completed") => {
+    if (action === "confirmed") appointmentService.confirmAppointment(appt.id);
+    else appointmentService.markCompleted(appt.id);
+    refresh();
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Today&apos;s Appointments</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{appointments.length} appointments scheduled for today</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Today's Appointments</h1>
+        <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search patients..." className="h-10 rounded-xl pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
-          <option value="all">All Status</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard icon={CalendarDays} label="Total" value={stats.total} color="bg-gradient-primary" />
+        <StatCard icon={Clock} label="Pending" value={stats.pending} color="bg-gradient-health" />
+        <StatCard icon={CheckCircle} label="Confirmed" value={stats.confirmed} color="bg-gradient-soft text-primary" />
+        <StatCard icon={XCircle} label="Completed" value={stats.completed} color="bg-gradient-primary" />
       </div>
 
-      <div className="space-y-2">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search by patient or reason..." className="h-10 rounded-xl pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-soft">
-            <p className="text-sm text-muted-foreground">No appointments match your filters.</p>
+            <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">No appointments for today.</p>
           </div>
         ) : (
           filtered.map((a) => (
-            <div key={a.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft transition-colors hover:bg-accent/30">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {a.patientName.split(" ").map((n) => n[0]).join("")}
+            <Card key={a.id} className="border-border bg-card shadow-soft">
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-primary text-sm font-semibold text-primary-foreground">
+                    {a.patientName.charAt(0)}
                   </div>
                   <div>
-                    <Link to={`/doctor/patients/${a.patientId}`} className="text-sm font-medium hover:text-primary">{a.patientName}</Link>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" /> {a.time} &middot; {a.duration}min
-                    </div>
+                    <p className="font-medium">{a.patientName}</p>
+                    <p className="text-xs text-muted-foreground">{a.time} · {a.reason}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${typeColors[a.type] ?? ""}`}>{a.type}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColors[a.status] ?? ""}`}>{a.status}</span>
+                  <AppointmentStatusBadge status={a.status} />
+                  <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setDetailsAppt(a)}>Details</Button>
+                  {a.status === "pending" && (
+                    <Button size="sm" className="rounded-lg bg-gradient-health text-xs" onClick={() => handleAction(a, "confirmed")}>Confirm</Button>
+                  )}
+                  {a.status === "confirmed" && (
+                    <Button size="sm" className="rounded-lg bg-gradient-primary text-xs" onClick={() => handleAction(a, "completed")}>Complete</Button>
+                  )}
+                  {(a.status === "pending" || a.status === "confirmed") && (
+                    <Button variant="ghost" size="sm" className="rounded-lg text-xs text-destructive" onClick={() => setCancelAppt(a)}>Cancel</Button>
+                  )}
                 </div>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">{a.reason}</p>
-              {a.notes && <p className="mt-1 text-xs text-muted-foreground italic">Note: {a.notes}</p>}
-              <div className="mt-3 flex items-center gap-2">
-                <Link to={`/doctor/patients/${a.patientId}`} className="text-xs font-medium text-primary hover:underline">View patient</Link>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
+
+      <AppointmentDetailsModal open={!!detailsAppt} appointment={detailsAppt} onClose={() => setDetailsAppt(null)} />
+      <CancelAppointmentModal open={!!cancelAppt} appointment={cancelAppt} onClose={() => setCancelAppt(null)}
+        onConfirm={(reason) => { if (cancelAppt) { appointmentService.cancelAppointment(cancelAppt.id, reason); refresh(); } }} />
     </div>
   );
 }
