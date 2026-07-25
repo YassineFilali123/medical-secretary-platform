@@ -7,7 +7,17 @@ import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AdminDashboard from "@/pages/dashboards/AdminDashboard";
-import DoctorDashboard from "@/pages/dashboards/DoctorDashboard";
+import DoctorDashboardPage from "@/pages/doctor/DashboardPage";
+import SchedulePage from "@/pages/doctor/SchedulePage";
+import CalendarPage from "@/pages/doctor/CalendarPage";
+import TodaysAppointmentsPage from "@/pages/doctor/TodaysAppointmentsPage";
+import PatientsPage from "@/pages/doctor/PatientsPage";
+import PatientDetailsPage from "@/pages/doctor/PatientDetailsPage";
+import AiConversationsPage from "@/pages/doctor/AiConversationsPage";
+import AvailabilityPage from "@/pages/doctor/AvailabilityPage";
+import DoctorNotificationsPage from "@/pages/doctor/NotificationsPage";
+import DoctorProfilePage from "@/pages/doctor/ProfilePage";
+import DoctorSettingsPage from "@/pages/doctor/SettingsPage";
 import SecretaryDashboard from "@/pages/dashboards/SecretaryDashboard";
 import PatientDashboard from "@/pages/dashboards/PatientDashboard";
 
@@ -25,7 +35,17 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
-          <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboard />} />
+          <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
+          <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
+          <Route path={ROUTES.DOCTOR_CALENDAR} element={<CalendarPage />} />
+          <Route path={ROUTES.DOCTOR_TODAY} element={<TodaysAppointmentsPage />} />
+          <Route path={ROUTES.DOCTOR_PATIENTS} element={<PatientsPage />} />
+          <Route path={ROUTES.DOCTOR_PATIENT_DETAIL} element={<PatientDetailsPage />} />
+          <Route path={ROUTES.DOCTOR_AI_CONVERSATIONS} element={<AiConversationsPage />} />
+          <Route path={ROUTES.DOCTOR_AVAILABILITY} element={<AvailabilityPage />} />
+          <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
+          <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
+          <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
           <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboard />} />
           <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboard />} />
         </Route>

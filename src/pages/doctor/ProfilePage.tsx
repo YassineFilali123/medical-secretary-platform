@@ -1,0 +1,117 @@
+import { useState } from "react";
+import { Camera } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { doctorService } from "@/services/doctor";
+
+export default function DoctorProfilePage() {
+  const profile = doctorService.getProfile();
+  const [form, setForm] = useState({ ...profile });
+  const [saved, setSaved] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
+
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    doctorService.updateProfile(form);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
+
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="flex flex-col items-center gap-4 sm:flex-row">
+          <div className="relative">
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-gradient-primary text-2xl font-semibold text-white">
+              {profile.name.split(" ").map((n) => n[0]).join("")}
+            </div>
+            <button className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full border border-border bg-background shadow-soft">
+              <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="text-center sm:text-left">
+            <h2 className="text-lg font-semibold">{profile.name}</h2>
+            <p className="text-sm text-muted-foreground">{profile.specialty}</p>
+            <p className="text-xs text-muted-foreground">{profile.clinicName}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <h2 className="mb-4 text-base font-semibold">Personal Information</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Full Name</Label>
+            <Input value={form.name} onChange={(e) => handleChange("name", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Phone</Label>
+            <Input value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Specialty</Label>
+            <Input value={form.specialty} onChange={(e) => handleChange("specialty", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Bio</Label>
+            <textarea
+              value={form.bio}
+              onChange={(e) => handleChange("bio", e.target.value)}
+              className="h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none"
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button onClick={handleSaveProfile} className="rounded-xl bg-gradient-primary">
+            {saved ? "Saved!" : "Save Changes"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <h2 className="mb-4 text-base font-semibold">Clinic Information</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Clinic Name</Label>
+            <Input value={form.clinicName} onChange={(e) => handleChange("clinicName", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Clinic Address</Label>
+            <Input value={form.clinicAddress} onChange={(e) => handleChange("clinicAddress", e.target.value)} className="h-10 rounded-xl" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <h2 className="mb-4 text-base font-semibold">Change Password</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label>Current Password</Label>
+            <Input type="password" value={pwForm.current} onChange={(e) => setPwForm((p) => ({ ...p, current: e.target.value }))} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>New Password</Label>
+            <Input type="password" value={pwForm.newPw} onChange={(e) => setPwForm((p) => ({ ...p, newPw: e.target.value }))} className="h-10 rounded-xl" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Confirm Password</Label>
+            <Input type="password" value={pwForm.confirm} onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))} className="h-10 rounded-xl" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button variant="outline" className="rounded-xl">Update Password</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
