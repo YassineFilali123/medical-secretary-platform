@@ -21,12 +21,16 @@ import {
   MessageSquare,
   MessageCircle,
   Phone,
+  Radio,
+  PhoneCall,
+  AlertCircle,
   Settings,
   Shield,
   Stethoscope,
   Users,
   UserCircle,
   X,
+  PieChart,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -54,6 +58,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "AI Configuration", icon: Cpu, path: "/admin/ai-config" },
     { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
     { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
+    { label: "Analytics", icon: PieChart, path: "/analytics" },
     { label: "Activity Logs", icon: ClipboardList, path: "/admin/activity-logs" },
     { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
     { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
@@ -68,6 +73,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Today's Patients", icon: Users, path: "/doctor/today" },
     { label: "Patients", icon: Stethoscope, path: "/doctor/patients" },
     { label: "AI Conversations", icon: Bot, path: "/doctor/ai-conversations" },
+    { label: "Analytics", icon: PieChart, path: "/analytics" },
     { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
     { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Availability", icon: Clock, path: "/doctor/availability" },
@@ -77,12 +83,16 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   secretary: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/secretary/dashboard" },
-    { label: "Live Conversations", icon: MessageSquare, path: "/secretary/live-conversations" },
+    { label: "Live Dashboard", icon: Radio, path: "/secretary/live-dashboard" },
+    { label: "Active Conversations", icon: MessageSquare, path: "/secretary/active-conversations" },
+    { label: "Call Queue", icon: PhoneCall, path: "/secretary/call-queue" },
+    { label: "Emergency Queue", icon: AlertCircle, path: "/secretary/emergency-queue" },
     { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
     { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
     { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
     { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
     { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
+    { label: "Analytics", icon: PieChart, path: "/analytics" },
     { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
     { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Call History", icon: Phone, path: "/secretary/call-history" },
@@ -94,6 +104,7 @@ const ROLE_NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
     { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
     { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
+    { label: "Analytics", icon: PieChart, path: "/analytics" },
     { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
     { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     { label: "Documents", icon: FileText, path: "/patient/documents" },
@@ -167,6 +178,12 @@ export function DashboardLayout() {
             const isActive =
               item.path === "/ai-assistant"
                 ? location.pathname.startsWith("/ai-assistant")
+                : item.path === "/secretary/active-conversations"
+                ? location.pathname.startsWith("/secretary/active-conversations") || location.pathname.startsWith("/secretary/conversations")
+                : item.path === "/analytics"
+                ? location.pathname === "/analytics" || location.pathname.startsWith("/analytics/")
+                : item.path.startsWith("/secretary/") && item.path !== "/secretary/dashboard"
+                ? location.pathname === item.path || location.pathname.startsWith(item.path + "/")
                 : location.pathname === item.path;
             return (
               <Link

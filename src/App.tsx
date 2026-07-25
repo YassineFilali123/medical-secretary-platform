@@ -48,6 +48,12 @@ const CallHistoryPage = lazy(() => import("@/pages/secretary/CallHistoryPage"));
 const SecretaryNotificationsPage = lazy(() => import("@/pages/secretary/NotificationsPage"));
 const SecretaryProfilePage = lazy(() => import("@/pages/secretary/ProfilePage"));
 const SecretarySettingsPage = lazy(() => import("@/pages/secretary/SettingsPage"));
+const MonitoringLayout = lazy(() => import("@/pages/secretary/MonitoringLayout"));
+const LiveDashboardPage = lazy(() => import("@/pages/secretary/LiveDashboardPage"));
+const ActiveConversationsPage = lazy(() => import("@/pages/secretary/ActiveConversationsPage"));
+const CallQueuePage = lazy(() => import("@/pages/secretary/CallQueuePage"));
+const EmergencyQueuePage = lazy(() => import("@/pages/secretary/EmergencyQueuePage"));
+const ConversationDetailPage = lazy(() => import("@/pages/secretary/ConversationDetailPage"));
 
 const PatientDashboardPage = lazy(() => import("@/pages/patient/DashboardPage"));
 const BookAppointmentPage = lazy(() => import("@/pages/patient/BookAppointmentPage"));
@@ -62,6 +68,13 @@ const AiChatPage = lazy(() => import("@/pages/shared/AiChatPage"));
 const AiAssistantHomePage = lazy(() => import("@/pages/shared/AiAssistantHomePage"));
 const AiConversationPage = lazy(() => import("@/pages/shared/AiConversationPage"));
 const AiConversationHistoryPage = lazy(() => import("@/pages/shared/AiConversationHistory"));
+
+const AnalyticsDashboardPage = lazy(() => import("@/pages/analytics/AnalyticsDashboardPage"));
+const AppointmentAnalyticsPage = lazy(() => import("@/pages/analytics/AppointmentAnalyticsPage"));
+const AiAnalyticsPage = lazy(() => import("@/pages/analytics/AiAnalyticsPage"));
+const PatientAnalyticsPage = lazy(() => import("@/pages/analytics/PatientAnalyticsPage"));
+const DoctorAnalyticsPage = lazy(() => import("@/pages/analytics/DoctorAnalyticsPage"));
+const CallAnalyticsPage = lazy(() => import("@/pages/analytics/CallAnalyticsPage"));
 
 const SuspenseWrapper = () => (
   <Suspense fallback={<LoadingScreen />}>
@@ -100,6 +113,13 @@ export default function App() {
               <Route path={`${ROUTES.AI_ASSISTANT_CHAT}/:conversationId?`} element={<AiConversationPage />} />
               <Route path={ROUTES.AI_ASSISTANT_HISTORY} element={<AiConversationHistoryPage />} />
 
+              <Route path={ROUTES.ANALYTICS_DASHBOARD} element={<AnalyticsDashboardPage />} />
+              <Route path={ROUTES.ANALYTICS_APPOINTMENTS} element={<AppointmentAnalyticsPage />} />
+              <Route path={ROUTES.ANALYTICS_AI} element={<AiAnalyticsPage />} />
+              <Route path={ROUTES.ANALYTICS_PATIENTS} element={<PatientAnalyticsPage />} />
+              <Route path={ROUTES.ANALYTICS_DOCTORS} element={<DoctorAnalyticsPage />} />
+              <Route path={ROUTES.ANALYTICS_CALLS} element={<CallAnalyticsPage />} />
+
               <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
               <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
               <Route path={ROUTES.DOCTOR_CALENDAR} element={<DoctorCalendarPage />} />
@@ -123,6 +143,14 @@ export default function App() {
               <Route path={ROUTES.SECRETARY_NOTIFICATIONS} element={<SecretaryNotificationsPage />} />
               <Route path={ROUTES.SECRETARY_PROFILE} element={<SecretaryProfilePage />} />
               <Route path={ROUTES.SECRETARY_SETTINGS} element={<SecretarySettingsPage />} />
+
+              <Route element={<MonitoringLayout />}>
+                <Route path={ROUTES.SECRETARY_LIVE_DASHBOARD} element={<LiveDashboardPage />} />
+                <Route path={ROUTES.SECRETARY_ACTIVE_CONVERSATIONS} element={<ActiveConversationsPage />} />
+                <Route path={ROUTES.SECRETARY_CALL_QUEUE} element={<CallQueuePage />} />
+                <Route path={ROUTES.SECRETARY_EMERGENCY_QUEUE} element={<EmergencyQueuePage />} />
+                <Route path={ROUTES.SECRETARY_CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
+              </Route>
 
               <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
               <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
