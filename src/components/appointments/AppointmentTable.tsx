@@ -4,14 +4,28 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AppointmentStatusBadge } from "./AppointmentStatusBadge";
 import type { Appointment } from "@/types/appointment";
 
+export type AppointmentAction = "details" | "confirm" | "reject" | "complete" | "reschedule" | "cancel";
+
 type AppointmentTableProps = {
   appointments: Appointment[];
-  onAction: (action: string, appointment: Appointment) => void;
+  onAction: (action: AppointmentAction, appointment: Appointment) => void;
   showPatient?: boolean;
   showDoctor?: boolean;
+  /**
+   * Which row actions this page's role is allowed to perform. Defaults to none
+   * beyond "details", so a page that forgets to pass this shows a read-only
+   * table rather than buttons the API will reject.
+   */
+  actions?: AppointmentAction[];
 };
 
-export function AppointmentTable({ appointments, onAction, showPatient = true, showDoctor = true }: AppointmentTableProps) {
+export function AppointmentTable({
+  appointments,
+  onAction,
+  showPatient = true,
+  showDoctor = true,
+  actions = [],
+}: AppointmentTableProps) {
   if (appointments.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-soft">
@@ -75,21 +89,26 @@ export function AppointmentTable({ appointments, onAction, showPatient = true, s
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onAction("details", appt)}>View Details</DropdownMenuItem>
-                      {appt.status === "pending" && (
-                        <>
-                          <DropdownMenuItem onClick={() => onAction("confirm", appt)}>Confirm</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAction("reject", appt)} className="text-destructive">Reject</DropdownMenuItem>
-                        </>
+                      {/* Which of these the caller actually wires up depends on
+                          the role owning the page — the table only offers them. */}
+                      {actions.includes("confirm") && appt.status === "pending" && (
+                        <DropdownMenuItem onClick={() => onAction("confirm", appt)}>Confirm</DropdownMenuItem>
                       )}
-                      {appt.status === "confirmed" && (
-                        <>
-                          <DropdownMenuItem onClick={() => onAction("complete", appt)}>Mark Completed</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAction("reschedule", appt)}>Reschedule</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onAction("cancel", appt)} className="text-destructive">Cancel</DropdownMenuItem>
-                        </>
+                      {actions.includes("reschedule") && (appt.status === "pending" || appt.status === "confirmed") && (
+                        <DropdownMenuItem onClick={() => onAction("reschedule", appt)}>Reschedule</DropdownMenuItem>
                       )}
-                      {(appt.status === "pending" || appt.status === "confirmed") && (
-                        <DropdownMenuItem onClick={() => onAction("assign", appt)}>Assign Doctor</DropdownMenuItem>
+                      {actions.includes("complete") && appt.status === "confirmed" && (
+                        <DropdownMenuItem onClick={() => onAction("complete", appt)}>Mark Completed</DropdownMenuItem>
+                      )}
+                      {actions.includes("reject") && appt.status === "pending" && (
+                        <DropdownMenuItem onClick={() => onAction("reject", appt)} className="text-destructive">
+                          Reject
+                        </DropdownMenuItem>
+                      )}
+                      {actions.includes("cancel") && (appt.status === "pending" || appt.status === "confirmed") && (
+                        <DropdownMenuItem onClick={() => onAction("cancel", appt)} className="text-destructive">
+                          Cancel
+                        </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

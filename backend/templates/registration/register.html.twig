@@ -1,0 +1,65 @@
+{% extends 'base/auth_base.html.twig' %}
+
+{% block title %}Register - MedSecretary{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo"><span>M</span></div>
+            <h1>Create Account</h1>
+            <p>Join MedSecretary today</p>
+        </div>
+
+        {% for flashError in app.flashes('error') %}
+            <div class="flash flash-error">{{ flashError }}</div>
+        {% endfor %}
+        {% for flashSuccess in app.flashes('success') %}
+            <div class="flash flash-success">{{ flashSuccess }}</div>
+        {% endfor %}
+        {% for flashInfo in app.flashes('info') %}
+            <div class="flash flash-info">{{ flashInfo }}</div>
+        {% endfor %}
+
+        {{ form_start(registrationForm, {'attr': {'novalidate': 'novalidate'}}) }}
+            <div class="form-group">
+                {{ form_label(registrationForm.name) }}
+                {{ form_widget(registrationForm.name) }}
+                {% for error in registrationForm.name.vars.errors %}
+                    <div class="form-error">{{ error.message }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.email) }}
+                {{ form_widget(registrationForm.email) }}
+                {% for error in registrationForm.email.vars.errors %}
+                    <div class="form-error">{{ error.message }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.plainPassword.first) }}
+                {{ form_widget(registrationForm.plainPassword.first) }}
+                {% for error in registrationForm.plainPassword.first.vars.errors %}
+                    <div class="form-error">{{ error.message }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.plainPassword.second) }}
+                {{ form_widget(registrationForm.plainPassword.second) }}
+                {% for error in registrationForm.plainPassword.vars.errors %}
+                    <div class="form-error">{{ error.message }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        {{ form_end(registrationForm) }}
+
+        <div class="auth-link">
+            Already have an account? <a href="{{ path('app_login') }}">Sign in</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

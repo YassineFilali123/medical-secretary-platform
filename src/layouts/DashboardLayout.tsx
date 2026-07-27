@@ -27,6 +27,7 @@ import {
   Settings,
   Shield,
   Stethoscope,
+  TimerReset,
   Users,
   UserCircle,
   X,
@@ -42,6 +43,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import type { UserRole } from "@/types/auth";
 
 type NavItem = {
@@ -65,6 +68,7 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
       { label: "Roles & Permissions", icon: Shield, path: "/admin/roles" },
       { label: "AI Configuration", icon: Cpu, path: "/admin/ai-config" },
       { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
+      { label: "Specialties", icon: Stethoscope, path: "/admin/specialties" },
     ]},
     { label: "Insights", items: [
       { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
@@ -88,7 +92,8 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     { label: "Practice", items: [
       { label: "Schedule", icon: CalendarClock, path: "/doctor/schedule" },
       { label: "Calendar", icon: Calendar, path: "/doctor/calendar" },
-      { label: "Today's Patients", icon: Users, path: "/doctor/today" },
+      { label: "Appointments", icon: Users, path: "/doctor/today" },
+      { label: "Live Consultation", icon: Radio, path: "/doctor/live-consultation" },
       { label: "Patients", icon: Stethoscope, path: "/doctor/patients" },
       { label: "Availability", icon: Clock, path: "/doctor/availability" },
     ]},
@@ -116,6 +121,7 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Management", items: [
       { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
+      { label: "Schedule Adjustments", icon: TimerReset, path: "/secretary/schedule-adjustments" },
       { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
       { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
       { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
@@ -337,13 +343,9 @@ export function DashboardLayout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <button
-              className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent focus-ring"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 grid h-2 w-2 place-items-center rounded-full bg-destructive" aria-label="New notifications" />
-            </button>
+            <ThemeToggle />
+
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

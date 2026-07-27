@@ -1,46 +1,10 @@
 import type { User, LoginCredentials, UserRole } from "@/types/auth";
 
-const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: "1",
-    email: "admin@demo.com",
-    name: "Alex Admin",
-    role: "admin",
-    password: "123456",
-  },
-  {
-    id: "2",
-    email: "doctor@demo.com",
-    name: "Dr. Sarah Chen",
-    role: "doctor",
-    password: "123456",
-  },
-  {
-    id: "3",
-    email: "secretary@demo.com",
-    name: "Marie Dupont",
-    role: "secretary",
-    password: "123456",
-  },
-  {
-    id: "4",
-    email: "patient@demo.com",
-    name: "John Doe",
-    role: "patient",
-    password: "123456",
-  },
-];
+const API_URL = "http://localhost:8080/api";
 
 const TOKEN_KEY = "access_token";
 const USER_KEY = "auth_user";
-
-function generateFakeToken(userId: string): string {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload = btoa(
-    JSON.stringify({ sub: userId, iat: Date.now(), exp: Date.now() + 86400000 }),
-  );
-  return `${header}.${payload}.fake_signature`;
-}
+const VERIFY_EMAIL_KEY = "verify_email";
 
 function getDashboardPath(role: UserRole): string {
   const paths: Record<UserRole, string> = {
@@ -54,20 +18,31 @@ function getDashboardPath(role: UserRole): string {
 
 export const authService = {
   async login(credentials: LoginCredentials) {
-    await new Promise((r) => setTimeout(r, 400));
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const data = await res.json();
 
-    const found = MOCK_USERS.find((u) => u.email === credentials.email);
-    if (!found || found.password !== credentials.password) {
-      throw new Error("Invalid email or password");
+    if (!data.success) {
+      if (data.needsVerification) {
+        localStorage.setItem(VERIFY_EMAIL_KEY, data.email);
+        const error = new Error(data.error || "Please verify your email");
+        (error as any).needsVerification = true;
+        (error as any).email = data.email;
+        throw error;
+      }
+      throw new Error(data.error || "Login failed");
     }
 
     const user: User = {
-      id: found.id,
-      email: found.email,
-      name: found.name,
-      role: found.role,
+      id: String(data.user.id),
+      email: data.user.email,
+      name: data.user.name,
+      role: (data.user.roles?.[0]?.replace("ROLE_", "").toLowerCase() || "patient") as UserRole,
     };
-    const token = generateFakeToken(user.id);
+    const token = `token_${user.id}`;
 
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -76,40 +51,67 @@ export const authService = {
   },
 
   async register(data: { email: string; password: string; name: string; role: UserRole }) {
-    await new Promise((r) => setTimeout(r, 400));
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+      }),
+    });
+    const result = await res.json();
 
-    const exists = MOCK_USERS.some((u) => u.email === data.email);
-    if (exists) {
-      throw new Error("Email already in use");
+    if (!result.success) {
+      throw new Error(result.error || "Registration failed");
     }
 
-    const newUser: User & { password: string } = {
-      id: String(Date.now()),
+    localStorage.setItem(VERIFY_EMAIL_KEY, data.email);
+
+    return {
+      needsVerification: true,
       email: data.email,
-      name: data.name,
-      role: data.role,
-      password: data.password,
+      debugCode: result.debug_code,
+      message: result.message,
     };
+  },
 
-    MOCK_USERS.push(newUser);
+  async verifyCode(email: string, code: string) {
+    const res = await fetch(`${API_URL}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+    const data = await res.json();
 
-    const user: User = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.role,
-    };
-    const token = generateFakeToken(user.id);
+    if (!data.success) {
+      throw new Error(data.error || "Verification failed");
+    }
 
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.removeItem(VERIFY_EMAIL_KEY);
+    return data;
+  },
 
-    return { user, token, dashboardPath: getDashboardPath(user.role) };
+  async resendCode(email: string) {
+    const res = await fetch(`${API_URL}/resend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Failed to resend code");
+    }
+
+    return data;
   },
 
   logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(VERIFY_EMAIL_KEY);
   },
 
   getStoredUser(): User | null {
@@ -124,5 +126,9 @@ export const authService = {
 
   getStoredToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
+  },
+
+  getPendingVerificationEmail(): string | null {
+    return localStorage.getItem(VERIFY_EMAIL_KEY);
   },
 };

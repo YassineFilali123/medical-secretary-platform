@@ -1,0 +1,41 @@
+security:
+    enable_authenticator_manager: true
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt))/
+            security: false
+        main:
+            lazy: true
+            provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                username_parameter: _username
+                password_parameter: _password
+                enable_csrf: true
+                default_target_path: app_dashboard
+            logout:
+                path: app_logout
+                target: app_login
+
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_DOCTOR, ROLE_SECRETARY, ROLE_PATIENT]
+        ROLE_DOCTOR: [ROLE_USER]
+        ROLE_SECRETARY: [ROLE_USER]
+        ROLE_PATIENT: [ROLE_USER]
+
+    access_control:
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/verify, roles: PUBLIC_ACCESS }
+        - { path: ^/dashboard, roles: ROLE_USER }
+        - { path: ^/admin, roles: ROLE_ADMIN }

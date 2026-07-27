@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Activity, ShieldCheck, HeartPulse, Stethoscope } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 type AuthShellProps = {
   children: ReactNode;
@@ -28,25 +29,27 @@ export function AuthShell({ children, title, subtitle }: AuthShellProps) {
                   <HeartPulse className="h-20 w-20 text-white" strokeWidth={1.5} />
                 </div>
               </div>
-              <div className="absolute -left-4 top-6 rounded-2xl bg-white/95 p-3 text-foreground shadow-elevated">
+              {/* These float on the brand gradient in both themes, so they stay
+                  light-locked rather than following --foreground. */}
+              <div className="absolute -left-4 top-6 rounded-2xl bg-white/95 p-3 text-slate-900 shadow-elevated">
                 <div className="flex items-center gap-2">
                   <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-white">
                     <Stethoscope className="h-4 w-4" />
                   </div>
                   <div className="text-xs">
                     <div className="font-semibold">Consultation booked</div>
-                    <div className="text-muted-foreground">Dr. Chen · 09:00</div>
+                    <div className="text-slate-500">Dr. Chen · 09:00</div>
                   </div>
                 </div>
               </div>
-              <div className="absolute -right-2 bottom-6 rounded-2xl bg-white/95 p-3 text-foreground shadow-elevated">
+              <div className="absolute -right-2 bottom-6 rounded-2xl bg-white/95 p-3 text-slate-900 shadow-elevated">
                 <div className="flex items-center gap-2">
                   <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-health text-white">
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div className="text-xs">
                     <div className="font-semibold">HIPAA verified</div>
-                    <div className="text-muted-foreground">All records encrypted</div>
+                    <div className="text-slate-500">All records encrypted</div>
                   </div>
                 </div>
               </div>
@@ -63,7 +66,10 @@ export function AuthShell({ children, title, subtitle }: AuthShellProps) {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center bg-background px-6 py-10">
+      <div className="relative flex items-center justify-center bg-background px-6 py-10">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-md">
           <Link to="/" className="mb-8 flex items-center gap-2 lg:hidden">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-health text-white">

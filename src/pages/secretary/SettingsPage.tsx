@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Bell, Globe, Moon, Sun, Shield } from "lucide-react";
 import { SettingRow } from "@/components/shared/SettingRow";
+import { useTheme } from "@/hooks/useTheme";
+import type { ThemePreference } from "@/contexts/ThemeContext";
 
 export default function SecretarySettingsPage() {
-  const [theme, setTheme] = useState("light");
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [language, setLanguage] = useState("en");
   const [notifyApps, setNotifyApps] = useState(true);
   const [notifyEmergency, setNotifyEmergency] = useState(true);
@@ -31,12 +33,12 @@ export default function SecretarySettingsPage() {
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <h2 className="mb-4 text-base font-semibold flex items-center gap-2">
-          {theme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />} Theme
+          {resolvedTheme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />} Theme
         </h2>
-        <SettingRow icon={theme === "dark" ? Moon : Sun} title="Color Theme" description="Switch between light and dark mode">
+        <SettingRow icon={resolvedTheme === "dark" ? Moon : Sun} title="Color Theme" description="Switch between light and dark mode">
           <select
             value={theme}
-            onChange={(e) => setTheme(e.target.value)}
+            onChange={(e) => setTheme(e.target.value as ThemePreference)}
             className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
           >
             <option value="light">Light</option>

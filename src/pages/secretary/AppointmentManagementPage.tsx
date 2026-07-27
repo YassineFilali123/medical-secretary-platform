@@ -1,69 +1,127 @@
-import { useMemo, useState } from "react";
-import { CalendarDays, Search, Filter, Plus, Clock, UserCheck } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, CalendarDays, Clock, Filter, Loader2, Plus, Search, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/shared/StatCard";
-import { appointmentService } from "@/services/appointments";
-import { AppointmentStatusBadge, AssignDoctorModal, AppointmentDetailsModal, CancelAppointmentModal, BookAppointmentModal } from "@/components/appointments";
-import type { Appointment } from "@/types/appointment";
+import { useAppointments } from "@/hooks/useAppointments";
+import { useDebounced } from "@/hooks/useDebounced";
+import {
+  AppointmentDetailsModal,
+  AppointmentTable,
+  BookAppointmentModal,
+  CancelAppointmentModal,
+  RescheduleAppointmentModal,
+  type AppointmentAction,
+} from "@/components/appointments";
+import type { Appointment, AppointmentStatus } from "@/types/appointment";
+
+/** What a secretary may do: book, move, cancel, and settle a time by confirming. */
+const SECRETARY_ACTIONS: AppointmentAction[] = ["confirm", "reschedule", "cancel"];
 
 export default function AppointmentManagementPage() {
-  const [appointments, setAppointments] = useState(() => appointmentService.getAppointments());
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [assignAppt, setAssignAppt] = useState<Appointment | null>(null);
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
+
+  // Searching server-side keeps the page honest when the clinic has more
+  // appointments than one response can carry.
+  const debouncedSearch = useDebounced(search, 300);
+
+  const {
+    appointments,
+    counts,
+    loading,
+    error,
+    reload,
+    busyId,
+    actionError,
+    dismissActionError,
+    cancel,
+    reschedule,
+    confirm,
+  } = useAppointments({ status: statusFilter, q: debouncedSearch });
+
+  const [bookOpen, setBookOpen] = useState(false);
   const [detailsAppt, setDetailsAppt] = useState<Appointment | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appointment | null>(null);
-  const [bookOpen, setBookOpen] = useState(false);
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appointment | null>(null);
 
-  const filtered = useMemo(() => {
-    let result = appointments;
-    if (statusFilter !== "all") result = result.filter((a) => a.status === statusFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((a) => a.patientName.toLowerCase().includes(q) || a.doctorName.toLowerCase().includes(q) || a.reason.toLowerCase().includes(q));
+  const handleAction = (action: AppointmentAction, appointment: Appointment) => {
+    dismissActionError();
+    switch (action) {
+      case "details":
+        setDetailsAppt(appointment);
+        break;
+      case "confirm":
+        void confirm(appointment.id);
+        break;
+      case "reschedule":
+        setRescheduleAppt(appointment);
+        break;
+      case "cancel":
+        setCancelAppt(appointment);
+        break;
+      default:
+        break;
     }
-    return result.sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
-  }, [appointments, statusFilter, search]);
-
-  const stats = appointmentService.getStatusCounts(appointments);
-
-  const refresh = () => setAppointments(appointmentService.getAppointments());
-
-  const getActionLabel = (a: Appointment) => {
-    if (!a.doctorId) return "Assign";
-    if (a.status === "pending") return "Confirm";
-    return null;
-  };
-
-  const handleQuickAction = (a: Appointment) => {
-    if (!a.doctorId) { setAssignAppt(a); return; }
-    if (a.status === "pending") { appointmentService.confirmAppointment(a.id); refresh(); }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Appointment Management</h1>
-        <Button onClick={() => setBookOpen(true)} className="rounded-xl bg-gradient-primary"><Plus className="mr-1 h-4 w-4" /> New Appointment</Button>
+        <Button onClick={() => setBookOpen(true)} className="rounded-xl bg-gradient-primary">
+          <Plus className="mr-1 h-4 w-4" /> New Appointment
+        </Button>
       </div>
 
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" /> {error}
+          </span>
+          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => void reload()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {actionError && !cancelAppt && !rescheduleAppt && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" /> {actionError}
+          </span>
+          <Button variant="ghost" size="sm" className="rounded-lg" onClick={dismissActionError}>
+            Dismiss
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={CalendarDays} label="Total" value={stats.total} color="bg-gradient-primary" />
-        <StatCard icon={Clock} label="Pending" value={stats.pending} color="bg-gradient-health" />
-        <StatCard icon={UserCheck} label="Confirmed" value={stats.confirmed} color="bg-gradient-soft text-primary" />
-        <StatCard icon={CalendarDays} label="Completed" value={stats.completed} color="bg-gradient-primary" />
+        <StatCard icon={CalendarDays} label="Total" value={counts.total} color="bg-gradient-primary" />
+        <StatCard icon={Clock} label="Pending" value={counts.pending} color="bg-gradient-health" />
+        <StatCard icon={UserCheck} label="Confirmed" value={counts.confirmed} color="bg-gradient-soft text-primary" />
+        <StatCard icon={CalendarDays} label="Completed" value={counts.completed} color="bg-gradient-primary" />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search patient, doctor, or reason..." className="h-10 rounded-xl pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input
+            placeholder="Search patient, doctor, or reason…"
+            className="h-10 rounded-xl pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {loading && search !== debouncedSearch && (
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+          )}
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-10 w-full rounded-xl sm:w-40"><Filter className="mr-2 h-4 w-4" /><SelectValue placeholder="Status" /></SelectTrigger>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as AppointmentStatus | "all")}>
+          <SelectTrigger className="h-10 w-full rounded-xl sm:w-40">
+            <Filter className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
@@ -75,49 +133,48 @@ export default function AppointmentManagementPage() {
         </Select>
       </div>
 
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-soft">
-            <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/40" />
-            <p className="mt-2 text-sm text-muted-foreground">No appointments found.</p>
-          </div>
-        ) : (
-          filtered.map((a) => (
-            <Card key={a.id} className="border-border bg-card shadow-soft">
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-primary text-sm font-semibold text-primary-foreground">
-                    {a.patientName.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-medium">{a.patientName}</p>
-                    <p className="text-xs text-muted-foreground">{a.doctorName || "Unassigned"} · {a.date} {a.time} · {a.reason}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <AppointmentStatusBadge status={a.status} />
-                  <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setDetailsAppt(a)}>Details</Button>
-                  {getActionLabel(a) && (
-                    <Button size="sm" className="rounded-lg bg-gradient-health text-xs" onClick={() => handleQuickAction(a)}>
-                      {getActionLabel(a)}
-                    </Button>
-                  )}
-                  {(a.status === "pending" || a.status === "confirmed") && (
-                    <Button variant="ghost" size="sm" className="rounded-lg text-xs text-destructive" onClick={() => setCancelAppt(a)}>Cancel</Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card p-12 text-sm text-muted-foreground shadow-soft">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading appointments…
+        </div>
+      ) : (
+        <div className={busyId !== null ? "pointer-events-none opacity-60" : undefined}>
+          <AppointmentTable appointments={appointments} onAction={handleAction} actions={SECRETARY_ACTIONS} />
+        </div>
+      )}
 
-      <BookAppointmentModal open={bookOpen} onClose={() => setBookOpen(false)} onBooked={refresh} />
-      <AssignDoctorModal open={!!assignAppt} appointment={assignAppt} onClose={() => setAssignAppt(null)}
-        onConfirm={(doctorId) => { if (assignAppt) { appointmentService.assignDoctor(assignAppt.id, doctorId); refresh(); } }} />
+      <BookAppointmentModal
+        mode="secretary"
+        open={bookOpen}
+        onClose={() => setBookOpen(false)}
+        onBooked={() => void reload()}
+      />
+
       <AppointmentDetailsModal open={!!detailsAppt} appointment={detailsAppt} onClose={() => setDetailsAppt(null)} />
-      <CancelAppointmentModal open={!!cancelAppt} appointment={cancelAppt} onClose={() => setCancelAppt(null)}
-        onConfirm={(reason) => { if (cancelAppt) { appointmentService.cancelAppointment(cancelAppt.id, reason); refresh(); } }} />
+
+      <CancelAppointmentModal
+        open={!!cancelAppt}
+        appointment={cancelAppt}
+        error={actionError}
+        onClose={() => {
+          setCancelAppt(null);
+          dismissActionError();
+        }}
+        onConfirm={(reason) => (cancelAppt ? cancel(cancelAppt.id, reason) : Promise.resolve(false))}
+      />
+
+      <RescheduleAppointmentModal
+        open={!!rescheduleAppt}
+        appointment={rescheduleAppt}
+        error={actionError}
+        onClose={() => {
+          setRescheduleAppt(null);
+          dismissActionError();
+        }}
+        onConfirm={(date, time) =>
+          rescheduleAppt ? reschedule(rescheduleAppt.id, date, time) : Promise.resolve(false)
+        }
+      />
     </div>
   );
 }

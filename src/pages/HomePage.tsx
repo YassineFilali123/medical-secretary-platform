@@ -10,6 +10,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export default function HomePage() {
   return (
@@ -34,6 +35,7 @@ export default function HomePage() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button asChild variant="ghost" className="rounded-full">
               <Link to="/login">Sign in</Link>
             </Button>

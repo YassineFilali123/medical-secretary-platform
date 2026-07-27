@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MedSecretary</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0f2f5;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .navbar-logo {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .navbar-logo span { color: #fff; font-weight: 700; font-size: 16px; }
+        .navbar-brand strong { color: #0f172a; font-size: 16px; }
+        .navbar-actions { display: flex; align-items: center; gap: 16px; }
+        .navbar-user { font-size: 14px; color: #475569; }
+        .navbar-user strong { color: #0f172a; }
+        .btn-logout {
+            padding: 8px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            background: transparent;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 24px; }
+        .welcome-card {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 16px;
+            padding: 40px;
+            color: #fff;
+            margin-bottom: 32px;
+        }
+        .welcome-card h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .welcome-card p { font-size: 15px; opacity: 0.85; line-height: 1.6; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+        }
+        .info-card h3 { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .info-card .value { font-size: 18px; font-weight: 600; color: #0f172a; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a class="navbar-brand" href="{{ path('app_dashboard') }}">
+            <div class="navbar-logo"><span>M</span></div>
+            <strong>MedSecretary</strong>
+        </a>
+        <div class="navbar-actions">
+            <span class="navbar-user">Hello, <strong>{{ user.name }}</strong></span>
+            <a href="{{ path('app_logout') }}" class="btn-logout">Sign Out</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h1>Welcome, {{ user.name }}!</h1>
+            <p>Your email <strong>{{ user.email }}</strong> has been verified successfully.<br>
+               You are logged in as <strong>{{ user.roles[0]|replace({'ROLE_': ''})|capitalize }}</strong>.</p>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Account</h3>
+                <div class="value">{{ user.email }}</div>
+            </div>
+            <div class="info-card">
+                <h3>Role</h3>
+                <div class="value">{{ user.roles[0]|replace({'ROLE_': ''})|capitalize }}</div>
+            </div>
+            <div class="info-card">
+                <h3>Status</h3>
+                <div class="value" style="color: #16a34a;">Verified</div>
+            </div>
+            <div class="info-card">
+                <h3>Member Since</h3>
+                <div class="value">{{ user.createdAt ? user.createdAt|date('M d, Y') : 'N/A' }}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

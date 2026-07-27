@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { authService } from "@/api/auth.service";
-import { appointmentService } from "@/api/appointment.service";
 import { doctorService } from "@/api/doctor.service";
 import { patientService } from "@/api/patient.service";
 import { secretaryService } from "@/api/secretary.service";
@@ -9,7 +8,7 @@ import { adminService } from "@/api/admin.service";
 import { statisticsService } from "@/api/statistics.service";
 import { notificationService } from "@/api/notification.service";
 import { chatService } from "@/api/chat.service";
-import type { BookingData, RescheduleData, UserRole } from "@/models";
+import type { UserRole } from "@/models";
 import type { LoginCredentials } from "@/types/auth";
 import type { AvailabilitySlot } from "@/types/doctor";
 
@@ -32,118 +31,9 @@ export function useRegister() {
 }
 
 // ── Appointments ──────────────────────────────────────────────
-export function useAppointments() {
-  return useQuery({
-    queryKey: queryKeys.appointments.lists(),
-    queryFn: () => appointmentService.getAppointments(),
-  });
-}
-
-export function useAppointment(id: string) {
-  return useQuery({
-    queryKey: queryKeys.appointments.detail(id),
-    queryFn: () => appointmentService.getAppointmentById(id),
-    enabled: !!id,
-  });
-}
-
-export function useAppointmentsByPatient(patientId: string) {
-  return useQuery({
-    queryKey: queryKeys.appointments.byPatient(patientId),
-    queryFn: () => appointmentService.getAppointmentsByPatient(patientId),
-    enabled: !!patientId,
-  });
-}
-
-export function useAppointmentsByDoctor(doctorId: string) {
-  return useQuery({
-    queryKey: queryKeys.appointments.byDoctor(doctorId),
-    queryFn: () => appointmentService.getAppointmentsByDoctor(doctorId),
-    enabled: !!doctorId,
-  });
-}
-
-export function useTodaysAppointments() {
-  return useQuery({
-    queryKey: queryKeys.appointments.today(),
-    queryFn: () => appointmentService.getTodaysAppointments(),
-  });
-}
-
-export function useAppointmentDoctors() {
-  return useQuery({
-    queryKey: queryKeys.appointments.doctors(),
-    queryFn: () => appointmentService.getDoctors(),
-  });
-}
-
-export function useAppointmentSpecialties() {
-  return useQuery({
-    queryKey: queryKeys.appointments.specialties(),
-    queryFn: () => appointmentService.getSpecialties(),
-  });
-}
-
-export function useBookAppointment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: BookingData) => appointmentService.bookAppointment(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useCancelAppointment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason?: string }) =>
-      appointmentService.cancelAppointment(id, reason),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useRescheduleAppointment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: RescheduleData }) =>
-      appointmentService.rescheduleAppointment(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useConfirmAppointment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => appointmentService.confirmAppointment(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useRejectAppointment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason?: string }) =>
-      appointmentService.rejectAppointment(id, reason),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useMarkCompleted() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes?: string }) =>
-      appointmentService.markCompleted(id, notes),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
-
-export function useAssignDoctor() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, doctorId }: { id: string; doctorId: string }) =>
-      appointmentService.assignDoctor(id, doctorId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.appointments.all }),
-  });
-}
+// The react-query wrappers that lived here forwarded to a mock appointment
+// store. Appointments are now real API calls; use `useAppointments` from
+// @/hooks/useAppointments and `appointmentService` from @/services/appointments.
 
 // ── Doctor ────────────────────────────────────────────────────
 export function useDoctorProfile() {

@@ -1,131 +1,155 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Search, Clock } from "lucide-react";
+import { addDays, format, isSameDay, startOfWeek } from "date-fns";
+import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { doctorService } from "@/services/doctor";
-import type { DoctorAppointment } from "@/types/doctor";
-import { addDays, startOfWeek, format, isSameDay } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAppointments } from "@/hooks/useAppointments";
+import { AppointmentStatusBadge } from "@/components/appointments";
+import { TYPE_LABELS, type Appointment, type AppointmentStatus } from "@/types/appointment";
 
-const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  "in-progress": "bg-amber-100 text-amber-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
-const typeColors: Record<string, string> = {
-  consultation: "bg-purple-100 text-purple-700",
-  "follow-up": "bg-teal-100 text-teal-700",
-  emergency: "bg-red-100 text-red-700",
-  checkup: "bg-sky-100 text-sky-700",
-};
-
-function AppointmentCard({ a }: { a: DoctorAppointment }) {
-  return (
-    <Link to={`/doctor/patients/${a.patientId}`} className="block rounded-xl border border-border p-3 transition-colors hover:bg-accent/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {a.patientName.split(" ").map((n) => n[0]).join("")}
-          </div>
-          <div>
-            <div className="text-sm font-medium">{a.patientName}</div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" /> {a.time} &middot; {a.duration}min
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${typeColors[a.type] ?? ""}`}>{a.type}</span>
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColors[a.status] ?? ""}`}>{a.status}</span>
-        </div>
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground pl-12">{a.reason}</p>
-    </Link>
-  );
-}
-
+/**
+ * The doctor's week at a glance. Read-only by design — accepting, rejecting and
+ * completing all live on the Appointments page, so there is one place where the
+ * lifecycle is driven and no chance of the two disagreeing.
+ */
 export default function SchedulePage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [anchor, setAnchor] = useState(new Date());
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
 
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStart = startOfWeek(anchor, { weekStartsOn: 1 });
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
-  const allAppointments = doctorService.getAllAppointments();
+  const from = format(weekStart, "yyyy-MM-dd");
+  const to = format(addDays(weekStart, 6), "yyyy-MM-dd");
+
+  // Scoped to the signed-in doctor by the API; this only picks the week.
+  const { appointments, loading, error, reload } = useAppointments({ from, to, limit: 500 });
 
   const filtered = useMemo(() => {
-    return allAppointments.filter((a) => {
-      const matchesSearch = a.patientName.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-      return matchesSearch && matchesStatus;
+    const query = search.trim().toLowerCase();
+    return appointments.filter((a) => {
+      if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (query === "") return true;
+      return a.patientName.toLowerCase().includes(query) || a.reason.toLowerCase().includes(query);
     });
-  }, [allAppointments, search, statusFilter]);
+  }, [appointments, search, statusFilter]);
 
-  const getAppointmentsForDay = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
-    return filtered.filter((a) => a.date === dateStr);
-  };
+  const byDay = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    for (const a of filtered) {
+      const list = map.get(a.date);
+      if (list) list.push(a);
+      else map.set(a.date, [a]);
+    }
+    for (const list of map.values()) {
+      list.sort((x, y) => x.time.localeCompare(y.time));
+    }
+    return map;
+  }, [filtered]);
+
+  const ordered = useMemo(
+    () => [...filtered].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
+    [filtered],
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">My Schedule</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => setCurrentDate((d) => addDays(d, -7))} aria-label="Previous week" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button
+            onClick={() => setAnchor((d) => addDays(d, -7))}
+            aria-label="Previous week"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent"
+          >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm font-medium min-w-[160px] text-center">
-            {format(weekStart, "MMM d")} - {format(addDays(weekStart, 6), "MMM d, yyyy")}
+          <span className="min-w-[170px] text-center text-sm font-medium">
+            {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
           </span>
-          <button onClick={() => setCurrentDate((d) => addDays(d, 7))} aria-label="Next week" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent">
+          <button
+            onClick={() => setAnchor((d) => addDays(d, 7))}
+            aria-label="Next week"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent"
+          >
             <ChevronRight className="h-4 w-4" />
           </button>
+          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setAnchor(new Date())}>
+            Today
+          </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" /> {error}
+          </span>
+          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => void reload()}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search patients..."
+            placeholder="Search by patient or reason…"
             className="h-10 rounded-xl pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-        >
-          <option value="all">All Status</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as AppointmentStatus | "all")}>
+          <SelectTrigger className="h-10 w-full rounded-xl sm:w-44">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-7">
+      <div className="grid gap-3 lg:grid-cols-7">
         {weekDays.map((day) => {
-          const dayApps = getAppointmentsForDay(day);
+          const dateStr = format(day, "yyyy-MM-dd");
+          const dayAppointments = byDay.get(dateStr) ?? [];
           const isToday = isSameDay(day, new Date());
+
           return (
-            <div key={day.toISOString()} className={`rounded-xl border border-border p-3 ${isToday ? "ring-2 ring-primary/20" : ""}`}>
+            <div
+              key={dateStr}
+              className={`rounded-xl border border-border p-3 ${isToday ? "ring-2 ring-primary/20" : ""}`}
+            >
               <div className={`mb-2 text-center text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                 <div>{format(day, "EEE")}</div>
-                <div className={`mt-0.5 text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</div>
+                <div className={`mt-0.5 text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
+                  {format(day, "d")}
+                </div>
               </div>
               <div className="space-y-1.5">
-                {dayApps.map((a) => (
-                  <Link key={a.id} to={`/doctor/patients/${a.patientId}`} className="block rounded-lg border border-border/50 bg-background p-2 text-xs hover:bg-accent/50 transition-colors">
-                    <div className="font-medium truncate">{a.patientName.split(" ")[0]}</div>
+                {dayAppointments.map((a) => (
+                  <Link
+                    key={a.id}
+                    to={`/doctor/patients/${a.patientId}`}
+                    className="block rounded-lg border border-border/50 bg-background p-2 text-xs transition-colors hover:bg-accent/50"
+                  >
+                    <div className="truncate font-medium">{a.patientName}</div>
                     <div className="text-muted-foreground">{a.time}</div>
                   </Link>
                 ))}
-                {dayApps.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">No appointments</p>}
+                {dayAppointments.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">—</p>
+                )}
               </div>
             </div>
           );
@@ -133,9 +157,50 @@ export default function SchedulePage() {
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-base font-semibold">All Appointments ({filtered.length})</h2>
-        {filtered.map((a) => <AppointmentCard key={a.id} a={a} />)}
-        {filtered.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No appointments match your filters.</p>}
+        <h2 className="text-base font-semibold">This week ({ordered.length})</h2>
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card p-12 text-sm text-muted-foreground shadow-soft">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading schedule…
+          </div>
+        ) : ordered.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-soft">
+            <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              {appointments.length === 0 ? "Nothing booked this week." : "No appointments match your filters."}
+            </p>
+          </div>
+        ) : (
+          ordered.map((a) => (
+            <Link
+              key={a.id}
+              to={`/doctor/patients/${a.patientId}`}
+              className="block rounded-xl border border-border bg-card p-3 transition-colors hover:bg-accent/50"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {a.patientName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{a.patientName}</div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" /> {format(new Date(`${a.date}T00:00:00`), "EEE d MMM")} ·{" "}
+                      {a.time}–{a.endTime}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {TYPE_LABELS[a.type]}
+                  </span>
+                  <AppointmentStatusBadge status={a.status} />
+                </div>
+              </div>
+              <p className="mt-2 pl-12 text-xs text-muted-foreground">{a.reason}</p>
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { createContext, useState, useEffect, useCallback, type ReactNode } from 
 import { useNavigate } from "react-router-dom";
 import type { User, LoginCredentials, UserRole } from "@/types/auth";
 import { authService } from "@/services/auth";
+import { ROUTES } from "@/constants/routes";
 
 type AuthContextValue = {
   user: User | null;
@@ -34,18 +35,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
-      const result = await authService.login(credentials);
-      setUser(result.user);
-      navigate(result.dashboardPath, { replace: true });
+      try {
+        const result = await loginToApi(credentials);
+        setUser(result.user);
+        navigate(result.dashboardPath, { replace: true });
+      } catch (err: any) {
+        if (err.needsVerification) {
+          navigate(ROUTES.VERIFY_EMAIL, { replace: true });
+        }
+        throw err;
+      }
     },
     [navigate],
   );
 
   const register = useCallback(
     async (data: { email: string; password: string; name: string; role: UserRole }) => {
-      const result = await authService.register(data);
-      setUser(result.user);
-      navigate(result.dashboardPath, { replace: true });
+      const result = await registerOnApi(data);
+      if (result.needsVerification) {
+        navigate(ROUTES.VERIFY_EMAIL, { replace: true });
+      }
     },
     [navigate],
   );
@@ -70,4 +79,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+async function loginToApi(credentials: LoginCredentials) {
+  const res = await fetch("http://localhost:8080/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  });
+  const data = await res.json();
+
+  if (!data.success) {
+    if (data.needsVerification) {
+      localStorage.setItem("verify_email", data.email);
+      const error = new Error(data.error || "Please verify your email");
+      (error as any).needsVerification = true;
+      (error as any).email = data.email;
+      throw error;
+    }
+    throw new Error(data.error || "Login failed");
+  }
+
+  const user: User = {
+    id: String(data.user.id),
+    email: data.user.email,
+    name: data.user.name,
+    role: (data.user.roles?.[0]?.replace("ROLE_", "").toLowerCase() || "patient") as any,
+  };
+  const token = `token_${user.id}`;
+
+  localStorage.setItem("access_token", token);
+  localStorage.setItem("auth_user", JSON.stringify(user));
+
+  const paths: Record<string, string> = {
+    admin: "/admin/dashboard",
+    doctor: "/doctor/dashboard",
+    secretary: "/secretary/dashboard",
+    patient: "/patient/dashboard",
+  };
+  return { user, token, dashboardPath: paths[user.role] || "/patient/dashboard" };
+}
+
+async function registerOnApi(data: { email: string; password: string; name: string; role: string }) {
+  const res = await fetch("http://localhost:8080/api/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: data.name, email: data.email, password: data.password, role: data.role }),
+  });
+  const result = await res.json();
+
+  if (!result.success) {
+    throw new Error(result.error || "Registration failed");
+  }
+
+  localStorage.setItem("verify_email", data.email);
+  return { needsVerification: true, email: data.email, debugCode: result.debug_code, message: result.message };
 }

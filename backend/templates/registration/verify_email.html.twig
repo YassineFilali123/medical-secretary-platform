@@ -1,0 +1,52 @@
+{% extends 'base/auth_base.html.twig' %}
+
+{% block title %}Verify Email - MedSecretary{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo"><span>M</span></div>
+            <h1>Verify Your Email</h1>
+            <p>We sent a 6-digit code to <strong>{{ email }}</strong></p>
+        </div>
+
+        {% for flashError in app.flashes('error') %}
+            <div class="flash flash-error">{{ flashError }}</div>
+        {% endfor %}
+        {% for flashSuccess in app.flashes('success') %}
+            <div class="flash flash-success">{{ flashSuccess }}</div>
+        {% endfor %}
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+            <div class="form-group" style="text-align:center;">
+                {{ form_widget(form.code) }}
+                {% for error in form.code.vars.errors %}
+                    <div class="form-error">{{ error.message }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Verify</button>
+        {{ form_end(form) }}
+
+        <form method="post" action="{{ path('app_verify_email_resend', {'email': email}) }}">
+            <button type="submit" class="btn btn-secondary">Resend Code</button>
+        </form>
+
+        <div class="auth-link">
+            <a href="{{ path('app_login') }}">← Back to login</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .verification-code-input {
+        font-size: 28px !important;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: 12px;
+        padding: 16px !important;
+        color: #6366f1;
+    }
+</style>
+{% endblock %}

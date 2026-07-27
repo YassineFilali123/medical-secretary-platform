@@ -1,9 +1,10 @@
 export { AppointmentStatusBadge } from "./AppointmentStatusBadge";
 export { AppointmentCard } from "./AppointmentCard";
 export { AppointmentFilters } from "./AppointmentFilters";
-export { AppointmentTable } from "./AppointmentTable";
+export { AppointmentTable, type AppointmentAction } from "./AppointmentTable";
+export { SlotPicker, type SlotChoice } from "./SlotPicker";
 export { BookAppointmentModal } from "./BookAppointmentModal";
 export { CancelAppointmentModal } from "./CancelAppointmentModal";
+export { CompleteAppointmentModal } from "./CompleteAppointmentModal";
 export { RescheduleAppointmentModal } from "./RescheduleAppointmentModal";
 export { AppointmentDetailsModal } from "./AppointmentDetailsModal";
-export { AssignDoctorModal } from "./AssignDoctorModal";

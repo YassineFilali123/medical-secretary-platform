@@ -9,6 +9,7 @@ import { LoadingScreen } from "@/components/shared/LoadingScreen";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const AdminDashboardPage = lazy(() => import("@/pages/admin/DashboardPage"));
@@ -18,6 +19,7 @@ const RolesAndPermissionsPage = lazy(() => import("@/pages/admin/RolesAndPermiss
 const AiConfigurationPage = lazy(() => import("@/pages/admin/AiConfigurationPage"));
 const ConversationScenariosPage = lazy(() => import("@/pages/admin/ConversationScenariosPage"));
 const FaqManagementPage = lazy(() => import("@/pages/admin/FaqManagementPage"));
+const SpecialtiesPage = lazy(() => import("@/pages/admin/SpecialtiesPage"));
 const StatisticsPage = lazy(() => import("@/pages/admin/StatisticsPage"));
 const ActivityLogsPage = lazy(() => import("@/pages/admin/ActivityLogsPage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SystemSettingsPage"));
@@ -54,6 +56,8 @@ const ActiveConversationsPage = lazy(() => import("@/pages/secretary/ActiveConve
 const CallQueuePage = lazy(() => import("@/pages/secretary/CallQueuePage"));
 const EmergencyQueuePage = lazy(() => import("@/pages/secretary/EmergencyQueuePage"));
 const ConversationDetailPage = lazy(() => import("@/pages/secretary/ConversationDetailPage"));
+const ScheduleAdjustmentsPage = lazy(() => import("@/pages/secretary/ScheduleAdjustmentsPage"));
+const LiveConsultationPage = lazy(() => import("@/pages/doctor/LiveConsultationPage"));
 
 const PatientDashboardPage = lazy(() => import("@/pages/patient/DashboardPage"));
 const BookAppointmentPage = lazy(() => import("@/pages/patient/BookAppointmentPage"));
@@ -90,6 +94,7 @@ export default function App() {
           <Route path={ROUTES.HOME} element={<HomePage />} />
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
@@ -102,6 +107,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
               <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
               <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
+              <Route path={ROUTES.ADMIN_SPECIALTIES} element={<SpecialtiesPage />} />
               <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
               <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
               <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
@@ -128,6 +134,7 @@ export default function App() {
               <Route path={ROUTES.DOCTOR_PATIENT_DETAIL} element={<PatientDetailsPage />} />
               <Route path={ROUTES.DOCTOR_AI_CONVERSATIONS} element={<DoctorAiConversationsPage />} />
               <Route path={ROUTES.DOCTOR_AVAILABILITY} element={<AvailabilityPage />} />
+              <Route path={ROUTES.DOCTOR_LIVE_CONSULTATION} element={<LiveConsultationPage />} />
               <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
               <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
               <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
@@ -135,6 +142,7 @@ export default function App() {
               <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboardPage />} />
               <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
               <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
+              <Route path={ROUTES.SECRETARY_SCHEDULE_ADJUSTMENTS} element={<ScheduleAdjustmentsPage />} />
               <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
               <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
               <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />

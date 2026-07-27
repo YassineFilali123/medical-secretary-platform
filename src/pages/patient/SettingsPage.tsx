@@ -3,9 +3,11 @@ import { Bell, Globe, Moon, Sun, Shield } from "lucide-react";
 import { SettingRow } from "@/components/shared/SettingRow";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useTheme } from "@/hooks/useTheme";
+import type { ThemePreference } from "@/contexts/ThemeContext";
 
 export default function PatientSettingsPage() {
-  const [theme, setTheme] = useState("light");
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [language, setLanguage] = useState("en");
   const [notifyApps, setNotifyApps] = useState(true);
   const [notifyMessages, setNotifyMessages] = useState(true);
@@ -34,12 +36,12 @@ export default function PatientSettingsPage() {
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <h2 className="mb-4 text-base font-semibold flex items-center gap-2">
-          {theme === "dark" ? <Moon className="h-4 w-4 text-primary" aria-hidden="true" /> : <Sun className="h-4 w-4 text-primary" aria-hidden="true" />} Theme
+          {resolvedTheme === "dark" ? <Moon className="h-4 w-4 text-primary" aria-hidden="true" /> : <Sun className="h-4 w-4 text-primary" aria-hidden="true" />} Theme
         </h2>
-        <SettingRow icon={theme === "dark" ? Moon : Sun} title="Color Theme" description="Switch between light and dark mode">
+        <SettingRow icon={resolvedTheme === "dark" ? Moon : Sun} title="Color Theme" description="Switch between light and dark mode">
           <select
             value={theme}
-            onChange={(e) => setTheme(e.target.value)}
+            onChange={(e) => setTheme(e.target.value as ThemePreference)}
             aria-label="Color theme"
             className="h-9 rounded-lg border border-input bg-background px-2 text-sm focus-ring"
           >
