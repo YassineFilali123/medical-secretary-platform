@@ -15,6 +15,7 @@ import {
   Clock,
   Cpu,
   FileText,
+  FolderOpen,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -32,6 +33,7 @@ import {
   UserCircle,
   X,
   PieChart,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -122,6 +124,8 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     { label: "Management", items: [
       { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
       { label: "Schedule Adjustments", icon: TimerReset, path: "/secretary/schedule-adjustments" },
+      { label: "Follow-ups", icon: CalendarClock, path: "/secretary/followups" },
+      { label: "Document Requests", icon: FolderOpen, path: "/secretary/document-requests" },
       { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
       { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
       { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
@@ -146,6 +150,8 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     { label: "Health", items: [
       { label: "Appointments", icon: CalendarClock, path: "/patient/appointments" },
       { label: "Documents", icon: FileText, path: "/patient/documents" },
+      { label: "Follow-ups", icon: Stethoscope, path: "/patient/followups" },
+      { label: "Rate Consultations", icon: Star, path: "/patient/ratings" },
     ]},
     { label: "AI & Insights", items: [
       { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
@@ -207,6 +213,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "call-history": "Call History",
   documents: "Documents",
   conversations: "Conversations",
+  "followups": "Follow-ups",
   "book": "Book Appointment",
 };
 

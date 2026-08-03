@@ -258,7 +258,7 @@ export default function AvailabilityPage() {
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
           <div className="text-sm text-muted-foreground">Bookable days</div>
           <div className="mt-1 text-2xl font-semibold">{bookableDays}</div>
-          <div className="text-xs text-muted-foreground">Next 14 days</div>
+          <div className="text-xs text-muted-foreground">Next 30 days</div>
         </div>
       </div>
 
@@ -436,10 +436,10 @@ export default function AvailabilityPage() {
       {/* ------------------------ generated slots ------------------------ */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
-          <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> Upcoming Bookable Slots
+          <CalendarCheck className="h-4 w-4 text-primary" aria-hidden="true" /> Upcoming Availability ({preview.length} Days)
         </h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          The next 14 days, generated from the schedule above. This is what patients will see.
+          Showing consecutive availability for the next 30 days starting from today, generated from your schedule and bookings.
         </p>
 
         {previewLoading ? (
@@ -449,19 +449,65 @@ export default function AvailabilityPage() {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {preview.map((day) => (
-              <div key={day.date} className="rounded-xl border border-border p-3">
+              <div
+                key={day.date}
+                className={`rounded-xl border p-3 transition-all ${
+                  day.isTimeOff
+                    ? "border-red-200 bg-red-50/40"
+                    : day.isFullyBooked
+                      ? "border-orange-200 bg-orange-50/40"
+                      : day.workingHours
+                        ? "border-border bg-card"
+                        : "border-border bg-muted/20"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
                     {DAY_LABELS[day.dayOfWeek]} {day.date.slice(5)}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {day.slots.length > 0
-                      ? `${day.slots.length} slots`
-                      : day.reason === "time_off"
-                        ? "Time off"
-                        : "Closed"}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      day.isTimeOff
+                        ? "bg-red-100 text-red-700"
+                        : day.isFullyBooked
+                          ? "bg-orange-100 text-orange-700"
+                          : day.workingHours
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {day.isTimeOff
+                      ? "Time Off"
+                      : day.isFullyBooked
+                        ? "Fully Booked"
+                        : day.workingHours
+                          ? `${day.slots.length} slots`
+                          : "Closed"}
                   </span>
                 </div>
+
+                {day.workingHours && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Hours: {day.workingHours.start} – {day.workingHours.end}
+                  </p>
+                )}
+
+                {day.existingAppointments && day.existingAppointments.length > 0 && (
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-[10px] font-medium text-muted-foreground">
+                      Booked ({day.existingAppointments.length}):
+                    </p>
+                    <div className="space-y-0.5 max-h-16 overflow-y-auto">
+                      {day.existingAppointments.map((apt, idx) => (
+                        <div key={idx} className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <span>• {apt.start}–{apt.end}</span>
+                          <span className="capitalize text-[9px] opacity-75">({apt.status})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {day.slots.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {day.slots.slice(0, 6).map((s) => (

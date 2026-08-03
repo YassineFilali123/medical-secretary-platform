@@ -344,6 +344,19 @@ class AppointmentController
             return $slot;
         }
 
+        // A patient is limited to one active appointment per day — they cannot
+        // be in two waiting rooms at once, and the clinic wants to spread slots
+        // fairly.
+        $dailyCount = $this->patientDailyCount($patientId, $slot['date'], null);
+        if ($dailyCount >= 1) {
+            return [
+                'success' => false,
+                'error'   => $isSecretary
+                    ? 'That patient already has an appointment on this day. Only one appointment per day is allowed.'
+                    : 'You already have an appointment on this day. Only one appointment per day is allowed.',
+            ];
+        }
+
         $clash = $this->patientClash($patientId, $slot['date'], $slot['startMin'], $slot['endMin'], null);
         if ($clash !== null) {
             return [
@@ -608,17 +621,18 @@ class AppointmentController
         $isOwnDoctor = (int) $row['doctor_user_id'] === $me['id'] && $this->hasRole($me, 'ROLE_DOCTOR');
         $isSecretary = $this->hasRole($me, 'ROLE_SECRETARY');
 
-        // Rejecting and completing are clinical decisions; only the doctor whose
-        // appointment it is may make them.
+        // Confirming is the secretary's job — they field the calls and settle
+        // the time. Rejecting and completing are clinical decisions; only the
+        // doctor whose appointment it is may make them.
         $allowed = $target === 'confirmed'
-            ? ($isOwnDoctor || $isSecretary)
+            ? $isSecretary
             : $isOwnDoctor;
 
         if (!$allowed) {
             return [
                 'success' => false,
                 'error'   => $target === 'confirmed'
-                    ? 'Only the doctor or a secretary can confirm an appointment.'
+                    ? 'Only a secretary can confirm an appointment.'
                     : sprintf('Only the doctor can mark an appointment as %s.', $target),
                 'status'  => 403,
             ];
@@ -948,6 +962,29 @@ class AppointmentController
         }
 
         return null;
+    }
+
+    /**
+     * Count active appointments for a patient on a given date. Used to enforce
+     * the one-per-day limit. Cancelled and rejected appointments do not count —
+     * they freed their slot.
+     */
+    private function patientDailyCount(int $patientId, string $date, ?int $excludeId): int
+    {
+        $sql = "SELECT COUNT(*) FROM appointment
+                 WHERE patient_user_id = ? AND appointment_date = ?
+                   AND status IN ('pending', 'confirmed', 'in_progress', 'completed')";
+        $params = [$patientId, $date];
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> ?';
+            $params[] = $excludeId;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 
     // =========================================================================

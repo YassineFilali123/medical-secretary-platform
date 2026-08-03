@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
+import { DoctorRatingStats } from "@/components/consultation/DoctorRatingStats";
 import { specialtyService, type Specialty } from "@/services/specialty";
 
 export default function DoctorProfilePage() {
@@ -212,6 +213,8 @@ export default function DoctorProfilePage() {
       </div>
 
       <ChangePasswordCard email={profile?.email ?? user?.email ?? ""} />
+
+      {user && <DoctorRatingStats doctorId={Number(user.id)} />}
     </div>
   );
 }

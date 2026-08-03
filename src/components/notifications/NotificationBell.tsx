@@ -1,19 +1,30 @@
 import { Bell, CheckCheck, Siren } from "lucide-react";
+import { useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
+import { playNotificationSound } from "@/hooks/useLiveConsultation";
 
 /**
  * Live notification bell.
  *
- * Backed by useNotifications, which polls incrementally — see that file for why
- * this is not a WebSocket and exactly where one would attach.
+ * Plays a sound when new unread notifications arrive.
+ * Backed by useNotifications, which polls incrementally.
  */
 export function NotificationBell() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const prevUnread = useRef(unreadCount);
+
+  // Play sound when unread count increases (new notification arrived)
+  useEffect(() => {
+    if (unreadCount > prevUnread.current && prevUnread.current >= 0) {
+      playNotificationSound();
+    }
+    prevUnread.current = unreadCount;
+  }, [unreadCount]);
 
   return (
     <DropdownMenu>

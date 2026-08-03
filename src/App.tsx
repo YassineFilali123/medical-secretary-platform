@@ -57,6 +57,8 @@ const CallQueuePage = lazy(() => import("@/pages/secretary/CallQueuePage"));
 const EmergencyQueuePage = lazy(() => import("@/pages/secretary/EmergencyQueuePage"));
 const ConversationDetailPage = lazy(() => import("@/pages/secretary/ConversationDetailPage"));
 const ScheduleAdjustmentsPage = lazy(() => import("@/pages/secretary/ScheduleAdjustmentsPage"));
+const SecretaryDocumentRequestsPage = lazy(() => import("@/pages/secretary/DocumentRequestsPage"));
+const SecretaryFollowUpsPage = lazy(() => import("@/pages/secretary/FollowUpsPage"));
 const LiveConsultationPage = lazy(() => import("@/pages/doctor/LiveConsultationPage"));
 
 const PatientDashboardPage = lazy(() => import("@/pages/patient/DashboardPage"));
@@ -65,8 +67,10 @@ const MyAppointmentsPage = lazy(() => import("@/pages/patient/MyAppointmentsPage
 const AppointmentDetailsPage = lazy(() => import("@/pages/patient/AppointmentDetailsPage"));
 const AiAssistantPage = lazy(() => import("@/pages/patient/AiAssistantPage"));
 const DocumentsPage = lazy(() => import("@/pages/patient/DocumentsPage"));
+const PatientFollowUpsPage = lazy(() => import("@/pages/patient/PatientFollowUpsPage"));
 const PatientNotificationsPage = lazy(() => import("@/pages/patient/NotificationsPage"));
 const PatientProfilePage = lazy(() => import("@/pages/patient/ProfilePage"));
+const PatientRatingsPage = lazy(() => import("@/pages/patient/RatingsPage"));
 const PatientSettingsPage = lazy(() => import("@/pages/patient/SettingsPage"));
 const AiChatPage = lazy(() => import("@/pages/shared/AiChatPage"));
 const AiAssistantHomePage = lazy(() => import("@/pages/shared/AiAssistantHomePage"));
@@ -143,6 +147,8 @@ export default function App() {
               <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
               <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
               <Route path={ROUTES.SECRETARY_SCHEDULE_ADJUSTMENTS} element={<ScheduleAdjustmentsPage />} />
+              <Route path={ROUTES.SECRETARY_DOCUMENT_REQUESTS} element={<SecretaryDocumentRequestsPage />} />
+              <Route path={ROUTES.SECRETARY_FOLLOWUPS} element={<SecretaryFollowUpsPage />} />
               <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
               <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
               <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />
@@ -166,8 +172,10 @@ export default function App() {
               <Route path={ROUTES.PATIENT_APPOINTMENT_DETAIL} element={<AppointmentDetailsPage />} />
               <Route path={ROUTES.PATIENT_AI_ASSISTANT} element={<AiAssistantPage />} />
               <Route path={ROUTES.PATIENT_DOCUMENTS} element={<DocumentsPage />} />
+                            <Route path={ROUTES.PATIENT_FOLLOWUPS} element={<PatientFollowUpsPage />} />
               <Route path={ROUTES.PATIENT_NOTIFICATIONS} element={<PatientNotificationsPage />} />
               <Route path={ROUTES.PATIENT_PROFILE} element={<PatientProfilePage />} />
+              <Route path={ROUTES.PATIENT_RATINGS} element={<PatientRatingsPage />} />
               <Route path={ROUTES.PATIENT_SETTINGS} element={<PatientSettingsPage />} />
             </Route>
           </Route>

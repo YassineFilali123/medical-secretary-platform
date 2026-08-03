@@ -44,7 +44,6 @@ export default function TodaysAppointmentsPage() {
     busyId,
     actionError,
     dismissActionError,
-    confirm,
     reject,
     complete,
   } = useAppointments({ limit: 500 });
@@ -190,30 +189,21 @@ export default function TodaysAppointmentsPage() {
                     Details
                   </Button>
 
-                  {/* Accept / reject a request the patient has made. */}
+                  {/* Reject a request the patient has made. Confirming is
+                      the secretary's job, so the doctor only sees Reject here. */}
                   {a.status === "pending" && (
-                    <>
-                      <Button
-                        size="sm"
-                        className="rounded-lg bg-gradient-health text-xs"
-                        disabled={busyId === a.id}
-                        onClick={() => void confirm(a.id)}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-lg text-xs text-destructive"
-                        disabled={busyId === a.id}
-                        onClick={() => {
-                          dismissActionError();
-                          setRejectAppt(a);
-                        }}
-                      >
-                        Reject
-                      </Button>
-                    </>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg text-xs text-destructive"
+                      disabled={busyId === a.id}
+                      onClick={() => {
+                        dismissActionError();
+                        setRejectAppt(a);
+                      }}
+                    >
+                      Reject
+                    </Button>
                   )}
 
                   {/* Today's confirmed appointments open the live screen, where

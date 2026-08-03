@@ -7,8 +7,10 @@ import {
   Brain,
   AlertCircle,
   ArrowRight,
+  CheckCircle,
 } from "lucide-react";
 import { doctorService } from "@/services/doctor";
+import { followUpService, type FollowUpRecommendation } from "@/services/followup";
 import { useAuth } from "@/hooks/useAuth";
 import { StatCard } from "@/components/shared/StatCard";
 import type { DoctorAppointment, WeeklyStat } from "@/types/doctor";
@@ -46,10 +48,14 @@ export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<DoctorAppointment[]>([]);
   const [stats, setStats] = useState<WeeklyStat[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUpRecommendation[]>([]);
 
   useEffect(() => {
     setAppointments(doctorService.getTodaysAppointments());
     setStats(doctorService.getWeeklyStats());
+    followUpService.doctorList()
+      .then((res) => setFollowUps(res.followUps.slice(0, 5)))
+      .catch(() => {});
   }, []);
 
   const totalThisWeek = stats.reduce((s, d) => s + d.appointments, 0);
@@ -154,6 +160,35 @@ export default function DoctorDashboardPage() {
                 <Brain className="h-5 w-5" /> AI Chat
               </Link>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <h2 className="mb-3 text-base font-semibold flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-emerald-500" /> Follow-up Recommendations
+            </h2>
+            {followUps.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-3 text-center">No follow-ups.</p>
+            ) : (
+              <div className="space-y-2">
+                {followUps.map((f) => (
+                  <div key={f.id} className="rounded-xl border border-border bg-background p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">{f.patientName}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        f.status === "pending" ? "bg-amber-100 text-amber-700" :
+                        f.status === "accepted" || f.status === "booked" ? "bg-green-100 text-green-700" :
+                        "bg-gray-100 text-gray-500"
+                      }`}>
+                        {f.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {f.type === "none" ? "No follow-up" : f.periodLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -321,7 +321,7 @@ class AvailabilityController
     //
     // Bookable slots for a doctor: the weekly schedule, minus time off, minus
     // anything already booked. Open to any signed-in user because patients need
-    // it to book. Defaults to the next 14 days.
+    // it to book. Defaults to the next 30 days.
     //
     // `excludeAppointmentId` frees the slot an appointment currently occupies,
     // so the reschedule picker shows the patient's own time as available
@@ -365,7 +365,7 @@ class AvailabilityController
 
         $rawTo = $query['to'] ?? null;
         if ($rawTo === null || $rawTo === '') {
-            $to = (new DateTimeImmutable($from))->add(new DateInterval('P13D'))->format('Y-m-d');
+            $to = (new DateTimeImmutable($from))->add(new DateInterval('P29D'))->format('Y-m-d');
         } else {
             $to = $this->cleanDate($rawTo);
             if ($to === null) {
@@ -418,7 +418,7 @@ class AvailabilityController
     public function slotsFor(int $doctorId, string $from, string $to, ?int $excludeAppointmentId = null): array
     {
         $today = date('Y-m-d');
-        $days  = $this->inclusiveDays($from, $to);
+        $daysCount = $this->inclusiveDays($from, $to);
 
         // Slots already past on the current day are not bookable.
         $nowMinutes = ((int) date('H')) * 60 + (int) date('i');
@@ -431,46 +431,77 @@ class AvailabilityController
         $booked  = $this->bookedIntervals($doctorId, $from, $to, $excludeAppointmentId);
 
         $out = [];
-        $cursor = new DateTimeImmutable($from);
 
-        for ($i = 0; $i < $days; $i++) {
-            $date    = $cursor->format('Y-m-d');
-            $dow     = (int) $cursor->format('w'); // 0 = Sunday, same as day_of_week
+        for ($i = 0; $i < $daysCount; $i++) {
+            $dateStr = date('Y-m-d', strtotime("{$from} +{$i} days"));
+            $dow     = (int) date('w', strtotime($dateStr));
             $entry   = $week[$dow] ?? null;
-            $blocked = $this->timeOffCovering($timeOff, $date);
+            $blocked = $this->timeOffCovering($timeOff, $dateStr);
+
+            $workingHours = ($entry && $entry['isEnabled'])
+                ? ['start' => $entry['startTime'], 'end' => $entry['endTime']]
+                : null;
+
+            $existingAppointments = [];
+            if (isset($booked[$dateStr])) {
+                foreach ($booked[$dateStr] as $b) {
+                    $existingAppointments[] = [
+                        'start'  => $b['start'],
+                        'end'    => $b['end'],
+                        'status' => $b['status'],
+                    ];
+                }
+            }
 
             if ($entry === null || !$entry['isEnabled']) {
-                $out[] = ['date' => $date, 'dayOfWeek' => $dow, 'slots' => [], 'reason' => 'not_working'];
+                $out[] = [
+                    'date'                 => $dateStr,
+                    'dayOfWeek'            => $dow,
+                    'slots'                => [],
+                    'reason'               => 'not_working',
+                    'workingHours'         => null,
+                    'existingAppointments' => $existingAppointments,
+                    'isFullyBooked'        => false,
+                    'isTimeOff'            => false,
+                ];
             } elseif ($blocked !== null) {
                 $out[] = [
-                    'date'      => $date,
-                    'dayOfWeek' => $dow,
-                    'slots'     => [],
-                    'reason'    => 'time_off',
-                    // Dates only. The free-text reason is the doctor's private
-                    // note and must not reach a patient browsing for a slot.
-                    'timeOff'   => [
+                    'date'                 => $dateStr,
+                    'dayOfWeek'            => $dow,
+                    'slots'                => [],
+                    'reason'               => 'time_off',
+                    'workingHours'         => $workingHours,
+                    'existingAppointments' => $existingAppointments,
+                    'isFullyBooked'        => false,
+                    'isTimeOff'            => true,
+                    'timeOff'              => [
                         'startDate' => $blocked['startDate'],
                         'endDate'   => $blocked['endDate'],
                     ],
                 ];
             } else {
-                $slots = $this->buildSlots(
+                $rawSlots = $this->buildSlots(
                     $entry['startTime'],
                     $entry['endTime'],
                     $entry['slotMinutes'],
-                    $date === $today ? $nowMinutes : null,
+                    $dateStr === $today ? $nowMinutes : null,
                 );
 
+                $bookedIntervals = array_map(fn($b) => [$b['startMin'], $b['endMin']], $booked[$dateStr] ?? []);
+                $availableSlots  = $this->removeBooked($rawSlots, $bookedIntervals);
+                $isFullyBooked   = count($rawSlots) > 0 && count($availableSlots) === 0;
+
                 $out[] = [
-                    'date'      => $date,
-                    'dayOfWeek' => $dow,
-                    'slots'     => $this->removeBooked($slots, $booked[$date] ?? []),
-                    'reason'    => null,
+                    'date'                 => $dateStr,
+                    'dayOfWeek'            => $dow,
+                    'slots'                => $availableSlots,
+                    'reason'               => $isFullyBooked ? 'fully_booked' : null,
+                    'workingHours'         => $workingHours,
+                    'existingAppointments' => $existingAppointments,
+                    'isFullyBooked'        => $isFullyBooked,
+                    'isTimeOff'            => false,
                 ];
             }
-
-            $cursor = $cursor->add(new DateInterval('P1D'));
         }
 
         return $out;
@@ -484,10 +515,7 @@ class AvailabilityController
      * Cut a working window into fixed-length slots. A trailing remainder shorter
      * than one slot is dropped rather than offered as a short appointment.
      *
-     * Pure integer arithmetic on minutes-since-midnight. Using strtotime()/date()
-     * here would anchor the maths to the server's CURRENT date, so on a DST
-     * spring-forward day a 01:00-05:00 @30min window produced 6 slots instead of
-     * 8, one of them a 90-minute block labelled "01:30 -> 03:00".
+     * Pure integer arithmetic on minutes-since-midnight.
      *
      * @param int|null $notBefore Minutes since midnight; slots starting at or
      *                            before this are dropped. Null keeps them all.
@@ -506,7 +534,7 @@ class AvailabilityController
 
         $slots = [];
         while ($cursor + $minutes <= $finish) {
-            if ($notBefore === null || $cursor > $notBefore) {
+            if ($notBefore === null || $cursor >= $notBefore) {
                 $slots[] = [
                     'start' => $this->fromMinutes($cursor),
                     'end'   => $this->fromMinutes($cursor + $minutes),
@@ -532,17 +560,13 @@ class AvailabilityController
     }
 
     /**
-     * Live bookings for a doctor, grouped by date, as [startMin, endMin] pairs.
+     * Live bookings for a doctor, grouped by date.
      *
-     * Only statuses that still hold their slot are counted — the same set the
-     * `active_slot` generated column uses, so this view and the unique index
-     * can never disagree about what "taken" means.
-     *
-     * @return array<string, list<array{0:int,1:int}>>
+     * @return array<string, list<array{start:string,end:string,status:string,startMin:int,endMin:int}>>
      */
     private function bookedIntervals(int $doctorId, string $from, string $to, ?int $excludeId): array
     {
-        $sql = "SELECT appointment_date, start_time, end_time
+        $sql = "SELECT appointment_date, start_time, end_time, status
                   FROM appointment
                  WHERE doctor_user_id = ?
                    AND appointment_date BETWEEN ? AND ?
@@ -560,9 +584,14 @@ class AvailabilityController
 
         $byDate = [];
         foreach ($stmt->fetchAll() as $row) {
+            $start = substr((string) $row['start_time'], 0, 5);
+            $end   = substr((string) $row['end_time'], 0, 5);
             $byDate[$row['appointment_date']][] = [
-                $this->toMinutes(substr((string) $row['start_time'], 0, 5)),
-                $this->toMinutes(substr((string) $row['end_time'], 0, 5)),
+                'start'    => $start,
+                'end'      => $end,
+                'status'   => $row['status'],
+                'startMin' => $this->toMinutes($start),
+                'endMin'   => $this->toMinutes($end),
             ];
         }
 

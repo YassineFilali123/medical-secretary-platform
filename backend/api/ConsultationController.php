@@ -108,6 +108,16 @@ class ConsultationController
             return ['success' => false, 'error' => 'The appointment changed while you were working on it. Reload and try again.'];
         }
 
+        // Notify patient that consultation has started
+        $this->notifier->send((int) $row['patient_user_id'], [
+            'type'        => Notifier::CONSULTATION_STARTED,
+            'title'       => 'Consultation started',
+            'body'        => sprintf('Your consultation with %s has started.', $row['doctor_name']),
+            'relatedType' => 'appointment',
+            'relatedId'   => (int) $row['id'],
+            'urgent'      => false,
+        ]);
+
         return [
             'success'      => true,
             'message'      => 'Consultation started.',
@@ -116,7 +126,11 @@ class ConsultationController
     }
 
     // =========================================================================
-    // POST /api/consultations/end   { appointmentId, notes? }
+    // POST /api/consultations/end   { appointmentId, report? }
+    //
+    // The report object, when provided, is saved to consultation_report:
+    //   { diagnosis, notes, prescription, recommendedExaminations,
+    //     followUpInstructions, nextAppointmentRecommended, nextAppointmentReason }
     // =========================================================================
     public function end(array $data): array
     {
@@ -138,6 +152,7 @@ class ConsultationController
             ];
         }
 
+        // Legacy notes field (free text) — still supported
         $notes = null;
         if (array_key_exists('notes', $data)) {
             if (!is_string($data['notes'])) {
@@ -148,6 +163,12 @@ class ConsultationController
                 return ['success' => false, 'error' => 'Notes must be 2000 characters or fewer.'];
             }
             $notes = $notes === '' ? null : $notes;
+        }
+
+        // Structured report
+        $report = $data['report'] ?? null;
+        if ($report !== null && !is_array($report)) {
+            return ['success' => false, 'error' => 'Report must be an object.'];
         }
 
         $this->db->beginTransaction();
@@ -162,8 +183,25 @@ class ConsultationController
 
             if ($stmt->rowCount() === 0) {
                 $this->db->rollBack();
-
                 return ['success' => false, 'error' => 'The consultation changed while you were working on it. Reload and try again.'];
+            }
+
+            // Save the structured consultation report
+            $reportDocId = null;
+            if ($report !== null) {
+                $this->saveReport((int) $row['id'], $doctorId, (int) $row['patient_user_id'], $report);
+
+                // Auto-generate PDF and store in patient's documents
+                $docRequests = new DocumentRequestController();
+                $reportDocId = $docRequests->generateConsultationReport(
+                    (int) $row['id'],
+                    $doctorId,
+                    (int) $row['patient_user_id'],
+                    $report,
+                    $row['doctor_name'],
+                    $row['patient_name'],
+                    $row['appointment_date']
+                );
             }
 
             // A request nobody got round to deciding is moot once the
@@ -184,6 +222,34 @@ class ConsultationController
             throw $e;
         }
 
+        // Notify patient that consultation is completed and ask for rating
+        $this->notifier->send((int) $row['patient_user_id'], [
+            'type'        => Notifier::CONSULTATION_COMPLETED,
+            'title'       => 'Consultation completed',
+            'body'        => sprintf(
+                'Your consultation with %s has been completed. Please rate your experience.',
+                $row['doctor_name']
+            ),
+            'relatedType' => 'appointment',
+            'relatedId'   => (int) $row['id'],
+            'urgent'      => false,
+        ]);
+
+        // Notify patient that consultation report PDF is ready
+        if ($reportDocId !== null) {
+            $this->notifier->send((int) $row['patient_user_id'], [
+                'type'        => Notifier::DOCUMENT_READY,
+                'title'       => 'Consultation report ready',
+                'body'        => sprintf(
+                    'Your consultation report from %s is ready and available in your Documents.',
+                    $row['doctor_name']
+                ),
+                'relatedType' => 'patient_document',
+                'relatedId'   => $reportDocId,
+                'urgent'      => false,
+            ]);
+        }
+
         return [
             'success'           => true,
             'message'           => 'Consultation completed.',
@@ -195,8 +261,8 @@ class ConsultationController
     // =========================================================================
     // GET /api/consultations/active
     //
-    // The doctor's live screen. Returns the running consultation plus what is
-    // queued behind it, so the doctor can see who they are keeping waiting.
+    // The doctor's live screen. Returns the running consultation (enriched
+    // with full patient information) plus what is queued behind it.
     // =========================================================================
     public function active(): array
     {
@@ -228,9 +294,16 @@ class ConsultationController
         $pending->execute([$row['id']]);
         $waiting = $pending->fetch();
 
+        // Enrich with full patient data
+        $patientInfo = $this->loadPatientInfo((int) $row['patient_user_id']);
+        $previousConsultations = $this->previousConsultations($doctorId, (int) $row['patient_user_id'], (int) $row['id']);
+
         return [
             'success'      => true,
-            'consultation' => $this->shape($row),
+            'consultation' => array_merge($this->shape($row), [
+                'patientInfo'         => $patientInfo,
+                'previousConsultations' => $previousConsultations,
+            ]),
             'upNext'       => $this->todaysQueue($doctorId, (int) $row['id']),
             'pendingRequest' => $waiting === false ? null : [
                 'id'             => (int) $waiting['id'],
@@ -240,8 +313,6 @@ class ConsultationController
                 'isEmergency'    => (bool) $waiting['is_emergency'],
                 'createdAt'      => $waiting['created_at'],
             ],
-            // The client's clock may be wrong or in another timezone; elapsed
-            // and remaining are computed against this.
             'serverTime'   => date('c'),
         ];
     }
@@ -566,6 +637,254 @@ class ConsultationController
         }
 
         return ['row' => $row];
+    }
+
+    // =========================================================================
+    // POST /api/consultations/auto-start
+    //
+    // Called by the frontend every 30 seconds. Finds confirmed appointments
+    // whose start time has been reached (or up to 1 min past) and auto-starts
+    // them. Also sends 5-minute reminders for upcoming appointments.
+    // =========================================================================
+    public function autoStart(): array
+    {
+        $doctorId = $this->currentDoctorId();
+        if (is_array($doctorId)) {
+            return $doctorId;
+        }
+
+        $today = date('Y-m-d');
+        $now   = date('H:i:s');
+
+        // Already running? Nothing to auto-start.
+        $running = $this->db->prepare(
+            "SELECT id FROM appointment WHERE doctor_user_id = ? AND status = 'in_progress' LIMIT 1"
+        );
+        $running->execute([$doctorId]);
+        if ($running->fetchColumn() !== false) {
+            return ['success' => true, 'started' => false, 'remindersSent' => 0];
+        }
+
+        // Find confirmed appointments that should start now (start_time <= now, within last 2 min)
+        $stmt = $this->db->prepare(
+            "SELECT a.id, a.patient_user_id, a.start_time,
+                    pu.name AS patient_name, du.name AS doctor_name
+               FROM appointment a
+               JOIN `user` pu ON pu.id = a.patient_user_id
+               JOIN `user` du ON du.id = a.doctor_user_id
+              WHERE a.doctor_user_id = ?
+                AND a.appointment_date = ?
+                AND a.status = 'confirmed'
+                AND a.start_time <= ?
+                AND a.start_time >= DATE_SUB(?, INTERVAL 2 MINUTE)
+              ORDER BY a.start_time ASC
+              LIMIT 1"
+        );
+        $stmt->execute([$doctorId, $today, $now, $now]);
+        $appt = $stmt->fetch();
+
+        $started = false;
+        if ($appt !== false) {
+            $update = $this->db->prepare(
+                "UPDATE appointment
+                    SET status = 'in_progress', started_at = NOW(), updated_at = NOW()
+                  WHERE id = ? AND status = 'confirmed'"
+            );
+            $update->execute([$appt['id']]);
+            if ($update->rowCount() > 0) {
+                $started = true;
+                // Notify patient
+                $this->notifier->send((int) $appt['patient_user_id'], [
+                    'type'        => Notifier::CONSULTATION_STARTED,
+                    'title'       => 'Consultation started',
+                    'body'        => sprintf('Your consultation with %s has started.', $appt['doctor_name']),
+                    'relatedType' => 'appointment',
+                    'relatedId'   => (int) $appt['id'],
+                    'urgent'      => false,
+                ]);
+            }
+        }
+
+        // Send 5-minute reminders for upcoming confirmed appointments
+        $remindersSent = $this->sendUpcomingReminders($doctorId, $today, $now);
+
+        return ['success' => true, 'started' => $started, 'remindersSent' => $remindersSent];
+    }
+
+    /**
+     * For each confirmed appointment starting in 4-6 minutes from now,
+     * send a reminder to the patient (if not already sent today).
+     */
+    private function sendUpcomingReminders(int $doctorId, string $today, string $now): int
+    {
+        // Find appointments starting in the next 4-6 minutes
+        $stmt = $this->db->prepare(
+            "SELECT a.id, a.patient_user_id, a.start_time,
+                    du.name AS doctor_name
+               FROM appointment a
+               JOIN `user` du ON du.id = a.doctor_user_id
+              WHERE a.doctor_user_id = ?
+                AND a.appointment_date = ?
+                AND a.status = 'confirmed'
+                AND a.start_time BETWEEN DATE_ADD(?, INTERVAL 4 MINUTE) AND DATE_ADD(?, INTERVAL 6 MINUTE)"
+        );
+        $stmt->execute([$doctorId, $today, $now, $now]);
+        $upcoming = $stmt->fetchAll();
+
+        $sent = 0;
+        foreach ($upcoming as $appt) {
+            // Check if we already sent a reminder for this appointment
+            $check = $this->db->prepare(
+                "SELECT id FROM notification
+                  WHERE user_id = ? AND related_type = 'appointment' AND related_id = ?
+                    AND type = ? AND DATE(created_at) = ?"
+            );
+            $check->execute([
+                (int) $appt['patient_user_id'],
+                (int) $appt['id'],
+                Notifier::APPOINTMENT_REMINDER,
+                $today,
+            ]);
+            if ($check->fetchColumn() !== false) {
+                continue;
+            }
+
+            $this->notifier->send((int) $appt['patient_user_id'], [
+                'type'        => Notifier::APPOINTMENT_REMINDER,
+                'title'       => 'Appointment starting soon',
+                'body'        => sprintf(
+                    'Your appointment with %s will begin in 5 minutes. Please be ready.',
+                    $appt['doctor_name']
+                ),
+                'relatedType' => 'appointment',
+                'relatedId'   => (int) $appt['id'],
+                'urgent'      => false,
+            ]);
+            $sent++;
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Load full patient profile for the live consultation screen.
+     */
+    private function loadPatientInfo(int $patientId): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT u.id, u.name, u.email,
+                    p.phone, p.date_of_birth, p.gender, p.blood_type,
+                    p.allergies, p.emergency_contact, p.avatar_url
+               FROM `user` u
+               LEFT JOIN user_profile p ON p.user_id = u.id
+              WHERE u.id = ?"
+        );
+        $stmt->execute([$patientId]);
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return null;
+        }
+
+        $age = null;
+        if (!empty($row['date_of_birth']) && $row['date_of_birth'] !== '0000-00-00') {
+            try {
+                $born = new DateTimeImmutable($row['date_of_birth']);
+                $age = $born->diff(new DateTimeImmutable('today'))->y;
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
+        return [
+            'id'               => (int) $row['id'],
+            'name'             => $row['name'],
+            'email'            => $row['email'],
+            'phone'            => $row['phone'],
+            'avatarUrl'        => $row['avatar_url'],
+            'dateOfBirth'      => $row['date_of_birth'],
+            'age'              => $age,
+            'gender'           => $row['gender'],
+            'bloodType'        => $row['blood_type'],
+            'allergies'        => $row['allergies'],
+            'emergencyContact' => $row['emergency_contact'],
+        ];
+    }
+
+    /**
+     * Previous completed consultations for this patient with this doctor,
+     * including any consultation reports.
+     */
+    private function previousConsultations(int $doctorId, int $patientId, int $excludeAppointmentId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT a.id, a.appointment_date, a.start_time, a.reason, a.notes,
+                    cr.diagnosis, cr.prescription, cr.follow_up_instructions
+               FROM appointment a
+               LEFT JOIN consultation_report cr ON cr.appointment_id = a.id
+              WHERE a.doctor_user_id = ?
+                AND a.patient_user_id = ?
+                AND a.status = 'completed'
+                AND a.id <> ?
+              ORDER BY a.appointment_date DESC, a.start_time DESC
+              LIMIT 10"
+        );
+        $stmt->execute([$doctorId, $patientId, $excludeAppointmentId]);
+
+        return array_map(static function (array $r): array {
+            return [
+                'appointmentId'       => (int) $r['id'],
+                'date'                => $r['appointment_date'],
+                'time'                => substr((string) $r['start_time'], 0, 5),
+                'reason'              => $r['reason'],
+                'notes'               => $r['notes'],
+                'diagnosis'           => $r['diagnosis'],
+                'prescription'        => $r['prescription'],
+                'followUpInstructions' => $r['follow_up_instructions'],
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    /**
+     * Save the structured consultation report.
+     */
+    private function saveReport(int $appointmentId, int $doctorId, int $patientId, array $report): void
+    {
+        $clip = static function (?string $val, int $max = 5000): ?string {
+            if ($val === null) return null;
+            $val = trim($val);
+            if ($val === '') return null;
+            return mb_strlen($val) > $max ? mb_substr($val, 0, $max) : $val;
+        };
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO consultation_report
+                 (appointment_id, doctor_user_id, patient_user_id,
+                  diagnosis, notes, prescription, recommended_examinations,
+                  follow_up_instructions, next_appointment_recommended, next_appointment_reason)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                  diagnosis = VALUES(diagnosis),
+                  notes = VALUES(notes),
+                  prescription = VALUES(prescription),
+                  recommended_examinations = VALUES(recommended_examinations),
+                  follow_up_instructions = VALUES(follow_up_instructions),
+                  next_appointment_recommended = VALUES(next_appointment_recommended),
+                  next_appointment_reason = VALUES(next_appointment_reason)"
+        );
+
+        $stmt->execute([
+            $appointmentId,
+            $doctorId,
+            $patientId,
+            $clip($report['diagnosis'] ?? null),
+            $clip($report['notes'] ?? null),
+            $clip($report['prescription'] ?? null),
+            $clip($report['recommendedExaminations'] ?? null),
+            $clip($report['followUpInstructions'] ?? null),
+            !empty($report['nextAppointmentRecommended']) ? 1 : 0,
+            $clip($report['nextAppointmentReason'] ?? null, 255),
+        ]);
     }
 
     /** @return int|array The doctor's id, or an error array to return as-is. */

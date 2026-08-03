@@ -1,28 +1,40 @@
 import { useState } from "react";
 import {
   AlertCircle,
+  Calendar,
   CheckCircle,
+  ChevronDown,
+  ChevronRight,
   Clock,
+  Droplets,
+  FileText,
+  Heart,
   Hourglass,
   Loader2,
+  Mail,
+  Phone,
   Play,
   PlusCircle,
+  Shield,
   Siren,
   TimerReset,
+  User,
   Users,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useLiveConsultation } from "@/hooks/useLiveConsultation";
 import { RequestExtraTimeModal } from "@/components/consultation/RequestExtraTimeModal";
+import { ConsultationReportModal } from "@/components/consultation/ConsultationReportModal";
+import { FollowUpModal } from "@/components/consultation/FollowUpModal";
 import { AppointmentStatusBadge } from "@/components/appointments";
 import {
   consultationService,
   formatDuration,
   REASON_LABELS,
   type AffectedAppointment,
+  type ConsultationReport,
   type ReasonCategory,
 } from "@/services/consultation";
 import { TYPE_LABELS } from "@/types/appointment";
@@ -34,8 +46,11 @@ export default function LiveConsultationPage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [extendOpen, setExtendOpen] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<{ message: string; affected: AffectedAppointment[] } | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>("patient");
 
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
     setBusy(true);
@@ -58,7 +73,6 @@ export default function LiveConsultationPage() {
     isEmergency: boolean;
   }): Promise<boolean> => {
     if (!consultation) return false;
-
     setActionError(null);
     try {
       const result = await consultationService.extend({
@@ -74,6 +88,29 @@ export default function LiveConsultationPage() {
     }
   };
 
+  const handleEndWithReport = async (report: ConsultationReport): Promise<boolean> => {
+    if (!consultation) return false;
+    setReportError(null);
+    try {
+      await consultationService.endWithReport(consultation.appointmentId, report);
+      setReportOpen(false);
+      setFollowUpOpen(true);
+      return true;
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : "Could not save the report.");
+      return false;
+    }
+  };
+
+  const handleEndQuick = async () => {
+    if (!consultation) return;
+    const done = await run(() => end(consultation.appointmentId));
+    if (done) setOutcome(null);
+  };
+
+  const toggleSection = (section: string) =>
+    setExpandedSection((current) => (current === section ? null : section));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card p-12 text-sm text-muted-foreground shadow-soft">
@@ -82,12 +119,17 @@ export default function LiveConsultationPage() {
     );
   }
 
+  const patient = consultation?.patientInfo ?? null;
+  const previousConsultations = consultation?.previousConsultations ?? [];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Live Consultation</h1>
         <p className="text-sm text-muted-foreground">
-          {consultation ? "In progress" : "Nothing running — start one from today's list below."}
+          {consultation
+            ? "In progress — patient information and consultation tools below."
+            : "Nothing running — consultations start automatically at the scheduled time."}
         </p>
       </div>
 
@@ -128,8 +170,7 @@ export default function LiveConsultationPage() {
             <ul className="mt-3 space-y-1 pl-6 text-xs text-muted-foreground">
               {outcome.affected.map((a) => (
                 <li key={a.id}>
-                  {a.patientName}: {a.fromStart} → <span className="font-medium">{a.toStart}</span> (+
-                  {a.delay} min)
+                  {a.patientName}: {a.fromStart} → <span className="font-medium">{a.toStart}</span> (+{a.delay} min)
                 </li>
               ))}
             </ul>
@@ -138,137 +179,247 @@ export default function LiveConsultationPage() {
       )}
 
       {consultation && clock ? (
-        <>
-          <Card
-            className={`border-border shadow-soft ${
-              clock.overrunning ? "ring-2 ring-destructive/30" : ""
-            }`}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-primary text-base font-semibold text-white">
-                    {consultation.patientName.charAt(0).toUpperCase()}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main consultation area — 2 columns */}
+          <div className="space-y-4 lg:col-span-2">
+            {/* Patient header */}
+            <Card className={`border-border shadow-soft ${clock.overrunning ? "ring-2 ring-destructive/30" : ""}`}>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {patient?.avatarUrl ? (
+                      <img
+                        src={patient.avatarUrl}
+                        alt={consultation.patientName}
+                        className="h-14 w-14 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-primary text-lg font-semibold text-white">
+                        {consultation.patientName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <CardTitle className="text-lg">{consultation.patientName}</CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        {TYPE_LABELS[consultation.type]} · {consultation.reason}
+                        {patient?.age && ` · ${patient.age} years old`}
+                        {patient?.gender && ` · ${patient.gender}`}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{consultation.patientName}</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {TYPE_LABELS[consultation.type]} · {consultation.reason}
+                  <AppointmentStatusBadge status={consultation.status} />
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {/* Timer metrics */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <Metric icon={Calendar} label="Date" value={consultation.date} />
+                  <Metric icon={Clock} label="Scheduled" value={`${consultation.startTime} – ${consultation.endTime}`} />
+                  <Metric icon={Hourglass} label="Elapsed" value={formatDuration(clock.elapsedSeconds)} />
+                  {clock.overrunning ? (
+                    <Metric icon={TimerReset} label="Over by" value={formatDuration(clock.overrunSeconds)} tone="danger" />
+                  ) : (
+                    <Metric
+                      icon={TimerReset}
+                      label="Remaining"
+                      value={formatDuration(clock.remainingSeconds)}
+                      tone={clock.remainingSeconds < 300 ? "warn" : undefined}
+                    />
+                  )}
+                </div>
+
+                {clock.overrunning && (
+                  <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    Running past scheduled end.
+                    {upNext.length > 0 && " Your next patient is waiting."}
+                  </div>
+                )}
+
+                {pendingRequest && (
+                  <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                    <p className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Waiting on front desk: +{pendingRequest.minutes} minutes
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {REASON_LABELS[pendingRequest.reasonCategory]}
+                      {pendingRequest.reason ? ` — ${pendingRequest.reason}` : ""}
                     </p>
                   </div>
-                </div>
-                <AppointmentStatusBadge status={consultation.status} />
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Metric icon={Play} label="Started" value={consultation.startTime} />
-                <Metric
-                  icon={Clock}
-                  label="Scheduled end"
-                  value={consultation.endTime}
-                  hint={
-                    consultation.extendedMinutes > 0
-                      ? `was ${consultation.originalEndTime} (+${consultation.extendedMinutes} min)`
-                      : undefined
-                  }
-                />
-                <Metric icon={Hourglass} label="Elapsed" value={formatDuration(clock.elapsedSeconds)} />
-                {clock.overrunning ? (
-                  <Metric
-                    icon={TimerReset}
-                    label="Over by"
-                    value={formatDuration(clock.overrunSeconds)}
-                    tone="danger"
-                  />
-                ) : (
-                  <Metric
-                    icon={TimerReset}
-                    label="Remaining"
-                    value={formatDuration(clock.remainingSeconds)}
-                    tone={clock.remainingSeconds < 300 ? "warn" : undefined}
-                  />
                 )}
-              </div>
 
-              {clock.overrunning && (
-                <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  This consultation is running past its scheduled end.
-                  {upNext.length > 0 && " Your next patient is waiting."}
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => { setActionError(null); setExtendOpen(true); }}
+                    disabled={busy || !!pendingRequest}
+                    className="rounded-xl bg-gradient-primary"
+                  >
+                    <PlusCircle className="mr-1 h-4 w-4" /> Request Extra Time
+                  </Button>
+                  <Button
+                    onClick={() => { setReportError(null); setReportOpen(true); }}
+                    className="rounded-xl"
+                  >
+                    <FileText className="mr-1 h-4 w-4" /> End Consultation
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={handleEndQuick} disabled={busy}>
+                    {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-1 h-4 w-4" />}
+                    Quick End (no report)
+                  </Button>
                 </div>
-              )}
+              </CardContent>
+            </Card>
 
-              {pendingRequest && (
-                <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                  <p className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Waiting on the front desk: +{pendingRequest.minutes} minutes
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {REASON_LABELS[pendingRequest.reasonCategory]}
-                    {pendingRequest.reason ? ` — ${pendingRequest.reason}` : ""}
-                  </p>
-                </div>
-              )}
+            {/* Collapsible patient info sections */}
+            {patient && (
+              <Card className="border-border shadow-soft">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <User className="h-4 w-4 text-primary" />
+                    Patient Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0 divide-y divide-border p-0">
+                  <InfoSection
+                    title="Contact & Identity"
+                    icon={User}
+                    open={expandedSection === "patient"}
+                    onToggle={() => toggleSection("patient")}
+                  >
+                    <InfoRow icon={Mail} label="Email" value={patient.email} />
+                    <InfoRow icon={Phone} label="Phone" value={patient.phone ?? "Not provided"} />
+                    <InfoRow icon={Droplets} label="Blood Type" value={patient.bloodType ?? "Unknown"} />
+                    <InfoRow icon={Calendar} label="Date of Birth" value={patient.dateOfBirth ?? "Not provided"} />
+                  </InfoSection>
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => {
-                    setActionError(null);
-                    setExtendOpen(true);
-                  }}
-                  disabled={busy || !!pendingRequest}
-                  className="rounded-xl bg-gradient-primary"
-                >
-                  <PlusCircle className="mr-1 h-4 w-4" /> Request Extra Time
-                </Button>
-              </div>
+                  <InfoSection
+                    title="Medical Information"
+                    icon={Heart}
+                    open={expandedSection === "medical"}
+                    onToggle={() => toggleSection("medical")}
+                  >
+                    <InfoRow
+                      icon={AlertTriangle}
+                      label="Allergies"
+                      value={patient.allergies ?? "None reported"}
+                      highlight={!!patient.allergies}
+                    />
+                    <InfoRow icon={Shield} label="Emergency Contact" value={patient.emergencyContact ?? "Not provided"} />
+                  </InfoSection>
 
-              <div className="border-t border-border pt-4">
-                <Label>Consultation notes</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, 2000))}
-                  placeholder="Findings, prescriptions, follow-up…"
-                  className="mt-2 min-h-[90px] rounded-xl"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Saved against the appointment when you end the consultation. Staff only.
-                </p>
-                <Button
-                  onClick={async () => {
-                    const done = await run(() => end(consultation.appointmentId, notes.trim() || undefined));
-                    if (done) {
-                      setNotes("");
-                      setOutcome(null);
-                    }
-                  }}
-                  disabled={busy}
-                  className="mt-3 rounded-xl"
-                >
-                  {busy ? (
-                    <>
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Ending…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-1 h-4 w-4" /> End &amp; Complete
-                    </>
+                  {previousConsultations.length > 0 && (
+                    <InfoSection
+                      title={`Previous Consultations (${previousConsultations.length})`}
+                      icon={FileText}
+                      open={expandedSection === "history"}
+                      onToggle={() => toggleSection("history")}
+                    >
+                      <div className="space-y-3">
+                        {previousConsultations.map((pc) => (
+                          <div key={pc.appointmentId} className="rounded-xl border border-border p-3 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{pc.date} at {pc.time}</span>
+                              <span className="text-xs text-muted-foreground">{pc.reason}</span>
+                            </div>
+                            {pc.diagnosis && (
+                              <p className="mt-1 text-xs">
+                                <span className="font-medium text-primary">Diagnosis:</span> {pc.diagnosis}
+                              </p>
+                            )}
+                            {pc.prescription && (
+                              <p className="mt-0.5 text-xs">
+                                <span className="font-medium text-primary">Rx:</span> {pc.prescription}
+                              </p>
+                            )}
+                            {pc.notes && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">{pc.notes}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </InfoSection>
                   )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right sidebar — patient quick info */}
+          <div className="space-y-4">
+            {patient && (
+              <Card className="border-border shadow-soft">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Quick Reference</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <QuickFact icon={User} label="Age" value={patient.age ? `${patient.age} years` : "—"} />
+                  <QuickFact icon={Heart} label="Gender" value={patient.gender ?? "—"} />
+                  <QuickFact icon={Droplets} label="Blood Type" value={patient.bloodType ?? "—"} />
+                  <QuickFact icon={Phone} label="Phone" value={patient.phone ?? "—"} />
+                  {patient.allergies && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertTriangle className="h-3 w-3" /> Allergies
+                      </p>
+                      <p className="mt-0.5 text-xs text-destructive/80">{patient.allergies}</p>
+                    </div>
+                  )}
+                  {patient.emergencyContact && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                        <Phone className="h-3 w-3" /> Emergency Contact
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{patient.emergencyContact}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Appointment details */}
+            <Card className="border-border shadow-soft">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Appointment</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type</span>
+                  <span className="font-medium">{TYPE_LABELS[consultation.type]}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Duration</span>
+                  <span className="font-medium">{consultation.duration} min</span>
+                </div>
+                {consultation.extendedMinutes > 0 && (
+                  <div className="flex justify-between text-primary">
+                    <span>Extended</span>
+                    <span className="font-medium">+{consultation.extendedMinutes} min</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Started</span>
+                  <span className="font-mono font-medium">{consultation.startTime}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       ) : null}
 
+      {/* Waiting queue */}
       <Card className="border-border shadow-soft">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4 text-primary" />
             {consultation ? "Waiting" : "Today's appointments"} ({upNext.length})
+            {!consultation && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                (auto-starts at scheduled time)
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -331,9 +482,29 @@ export default function LiveConsultationPage() {
         onClose={() => setExtendOpen(false)}
         onSubmit={handleExtend}
       />
+
+      <ConsultationReportModal
+        open={reportOpen}
+        patientName={consultation?.patientName ?? ""}
+        error={reportError}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleEndWithReport}
+      />
+
+      <FollowUpModal
+        open={followUpOpen}
+        appointmentId={consultation?.appointmentId ?? 0}
+        patientName={consultation?.patientName ?? ""}
+        onClose={() => {
+          setFollowUpOpen(false);
+          reload();
+        }}
+      />
     </div>
   );
 }
+
+/* ── Sub-components ─────────────────────────────────────────── */
 
 function Metric({
   icon: Icon,
@@ -362,6 +533,64 @@ function Metric({
       </div>
       <p className={`mt-1 font-mono text-xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+function InfoSection({
+  title,
+  icon: Icon,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-accent/50"
+        onClick={onToggle}
+      >
+        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className="flex-1">{title}</span>
+        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2 py-1.5 text-sm">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
+      <span className={highlight ? "font-medium text-destructive" : ""}>{value}</span>
+    </div>
+  );
+}
+
+function QuickFact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="font-medium">{value}</span>
     </div>
   );
 }

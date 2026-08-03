@@ -32,6 +32,18 @@ class Notifier
     public const EXTENSION_REJECTED      = 'consultation.extension.rejected';
     public const APPOINTMENT_DELAYED     = 'appointment.delayed';
     public const EMERGENCY               = 'consultation.emergency';
+    public const APPOINTMENT_REMINDER    = 'appointment.reminder';
+    public const CONSULTATION_STARTED    = 'consultation.started';
+    public const CONSULTATION_COMPLETED  = 'consultation.completed';
+    public const RATING_REQUESTED        = 'consultation.rating_requested';
+    public const DOCUMENT_REQUESTED      = 'document.requested';
+    public const DOCUMENT_APPROVED       = 'document.approved';
+    public const DOCUMENT_REJECTED       = 'document.rejected';
+    public const DOCUMENT_READY          = 'document.ready';
+    public const FOLLOWUP_RECOMMENDED    = 'followup.recommended';
+    public const FOLLOWUP_ACCEPTED       = 'followup.accepted';
+    public const FOLLOWUP_BOOKED         = 'followup.booked';
+    public const FOLLOWUP_REMINDER       = 'followup.reminder';
 
     private PDO $db;
 

@@ -24,12 +24,22 @@ export type TimeOff = {
 
 export type Slot = { start: string; end: string };
 
+export type ExistingAppointmentInfo = {
+  start: string;
+  end: string;
+  status: string;
+};
+
 export type SlotDay = {
   date: string;
   dayOfWeek: DayOfWeek;
   slots: Slot[];
   /** Why there are no slots, when there are none. */
-  reason: "not_working" | "time_off" | null;
+  reason: "not_working" | "time_off" | "fully_booked" | null;
+  workingHours?: { start: string; end: string } | null;
+  existingAppointments?: ExistingAppointmentInfo[];
+  isFullyBooked?: boolean;
+  isTimeOff?: boolean;
   /**
    * Dates only — deliberately NOT the full TimeOff record. This endpoint is
    * readable by any signed-in user, and the doctor's free-text reason is
@@ -115,7 +125,7 @@ export const availabilityService = {
   },
 
   /**
-   * Bookable slots for a doctor over a date range (defaults to 14 days).
+   * Bookable slots for a doctor over a date range (defaults to 30 days).
    * Already-booked times are excluded by the server.
    *
    * @param opts.excludeAppointmentId Frees the slot this appointment currently

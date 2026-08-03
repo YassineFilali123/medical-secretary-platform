@@ -31,14 +31,18 @@ require_once __DIR__ . '/ScheduleAdjuster.php';
 require_once __DIR__ . '/ConsultationController.php';
 require_once __DIR__ . '/AdjustmentController.php';
 require_once __DIR__ . '/NotificationController.php';
+require_once __DIR__ . '/RatingController.php';
+require_once __DIR__ . '/DocumentRequestController.php';
+require_once __DIR__ . '/FollowUpController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Parse JSON body
+// Parse JSON body (skip for multipart/form-data which PHP handles via $_POST/$_FILES)
 $body = [];
 $badJson = false;
-if ($method === 'POST') {
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+if ($method === 'POST' && stripos($contentType, 'multipart/form-data') === false) {
     $raw = file_get_contents('php://input');
 
     // Some clients (notably Windows PowerShell's Set-Content -Encoding utf8)
@@ -76,6 +80,9 @@ $doctorPatients = new DoctorPatientController();
 $consultations  = new ConsultationController();
 $adjustments    = new AdjustmentController();
 $notifications  = new NotificationController();
+$ratings        = new RatingController();
+$docRequests    = new DocumentRequestController();
+$followUps      = new FollowUpController();
 
 try {
     $notFound = false;
@@ -216,6 +223,99 @@ try {
 
         case 'POST /api/consultations/extend':
             $result = $consultations->extend($body);
+            break;
+
+        case 'POST /api/consultations/auto-start':
+            $result = $consultations->autoStart();
+            break;
+
+        // --- Doctor ratings. Patients submit; everyone reads stats.
+        case 'POST /api/ratings/submit':
+            $result = $ratings->submit($body);
+            break;
+
+        case 'GET /api/ratings/doctor':
+            $result = $ratings->doctorStats($_GET);
+            break;
+
+        case 'GET /api/ratings/doctor/reviews':
+            $result = $ratings->doctorReviews($_GET);
+            break;
+
+        case 'GET /api/ratings/check':
+            $result = $ratings->check($_GET);
+            break;
+
+        case 'GET /api/ratings/pending':
+            $result = $ratings->pending($_GET);
+            break;
+
+        case 'GET /api/ratings/all':
+            $result = $ratings->allRatings($_GET);
+            break;
+
+        // --- Document requests. Patients request; secretaries process and upload.
+        case 'POST /api/documents/request':
+            $result = $docRequests->create($body);
+            break;
+
+        case 'GET /api/documents/requests':
+            $result = $docRequests->listRequests($_GET);
+            break;
+
+        case 'POST /api/documents/approve':
+            $result = $docRequests->approve($body);
+            break;
+
+        case 'POST /api/documents/reject':
+            $result = $docRequests->reject($body);
+            break;
+
+        case 'POST /api/documents/upload':
+            $result = $docRequests->upload();
+            break;
+
+        case 'GET /api/documents/download':
+            // This endpoint streams a file and calls exit, so it doesn't
+            // return a normal JSON result. Handle it here directly.
+            $docRequests->download($_GET);
+            exit;
+
+        case 'GET /api/documents/my':
+            $result = $docRequests->myDocuments();
+            break;
+
+        // --- Follow-up recommendations. Doctor creates; patient accepts/books.
+        case 'POST /api/followups/create':
+            $result = $followUps->create($body);
+            break;
+
+        case 'GET /api/followups/doctor':
+            $result = $followUps->doctorList($_GET);
+            break;
+
+        case 'GET /api/followups/patient':
+            $result = $followUps->patientList();
+            break;
+
+        case 'GET /api/followups/secretary':
+            $result = $followUps->secretaryList();
+            break;
+
+        case 'GET /api/followups/calendar':
+            $result = $followUps->calendar($_GET);
+            break;
+
+        case 'POST /api/followups/secretary/book':
+            $result = $followUps->secretaryBook($body);
+            break;
+
+        case 'POST /api/followups/book':
+            $result = $followUps->book($body);
+            break;
+
+        case 'POST /api/followups/reminders':
+            $result = $followUps->checkReminders();
             break;
 
         // --- Schedule adjustment requests. Secretaries decide; doctors read.

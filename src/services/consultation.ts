@@ -131,6 +131,70 @@ export type AppNotification = {
   createdAt: string;
 };
 
+// ── Consultation Report ──────────────────────────────────────
+export type ConsultationReport = {
+  diagnosis: string;
+  notes: string;
+  prescription: string;
+  recommendedExaminations: string;
+  followUpInstructions: string;
+  nextAppointmentRecommended: boolean;
+  nextAppointmentReason: string;
+};
+
+// ── Patient Info (returned inside active consultation) ───────
+export type PatientInfo = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  dateOfBirth: string | null;
+  age: number | null;
+  gender: string | null;
+  bloodType: string | null;
+  allergies: string | null;
+  emergencyContact: string | null;
+};
+
+export type PreviousConsultation = {
+  appointmentId: number;
+  date: string;
+  time: string;
+  reason: string;
+  notes: string | null;
+  diagnosis: string | null;
+  prescription: string | null;
+  followUpInstructions: string | null;
+};
+
+// ── Doctor Rating ────────────────────────────────────────────
+export type DoctorRatingStats = {
+  totalReviews: number;
+  averageRating: number | null;
+  distribution: Record<number, number>;
+};
+
+export type RatingReview = {
+  id: number;
+  rating: number;
+  review: string | null;
+  patientName: string;
+  patientAvatar: string | null;
+  appointmentDate: string;
+  appointmentReason: string;
+  createdAt: string;
+};
+
+export type PendingRatingAppointment = {
+  appointmentId: number;
+  date: string;
+  time: string;
+  reason: string;
+  doctorName: string;
+  doctorAvatar: string | null;
+};
+
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -174,6 +238,13 @@ export const consultationService = {
       notes,
     }),
 
+  endWithReport: (appointmentId: number, report: ConsultationReport, notes?: string) =>
+    post<{ consultation: Consultation; cancelledRequests: number }>("/consultations/end", {
+      appointmentId,
+      notes,
+      report,
+    }),
+
   extend: (input: {
     appointmentId: number;
     minutes: number;
@@ -181,6 +252,9 @@ export const consultationService = {
     reason?: string;
     isEmergency?: boolean;
   }) => post<ExtensionOutcome>("/consultations/extend", input),
+
+  autoStart: () =>
+    post<{ started: boolean; remindersSent: number }>("/consultations/auto-start", {}),
 };
 
 export const adjustmentService = {
@@ -227,3 +301,24 @@ export function formatDuration(totalSeconds: number): string {
     ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
     : `${m}:${String(s).padStart(2, "0")}`;
 }
+
+// ── Rating Service ───────────────────────────────────────────
+export const ratingService = {
+  submit: (input: { appointmentId: number; rating: number; review?: string }) =>
+    post<{ ratingId: number; message: string }>("/ratings/submit", input),
+
+  doctorStats: (doctorId: number) =>
+    get<{ stats: DoctorRatingStats }>(`/ratings/doctor?id=${doctorId}`),
+
+  doctorReviews: (doctorId: number, limit = 50) =>
+    get<{ reviews: RatingReview[]; total: number }>(`/ratings/doctor/reviews?id=${doctorId}&limit=${limit}`),
+
+  check: (appointmentId: number) =>
+    get<{ rated: boolean; rating?: number; review?: string }>(`/ratings/check?appointmentId=${appointmentId}`),
+
+  pending: () =>
+    get<{ appointments: PendingRatingAppointment[] }>("/ratings/pending"),
+
+  allRatings: (limit = 50, offset = 0) =>
+    get<{ ratings: RatingReview[]; total: number }>(`/ratings/all?limit=${limit}&offset=${offset}`),
+};
