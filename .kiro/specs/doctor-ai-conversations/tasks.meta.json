@@ -1,0 +1,83 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Database migration for AI conversation tables": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411511940
+      },
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411932161
+      }
+    ],
+    "2.1 Create DoctorAiConversationController class": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512076
+      },
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411602558
+      }
+    ],
+    "2.2 Add API routes to index.php": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512156
+      }
+    ],
+    "3.1 Add TypeScript types for AI conversations": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512236
+      },
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411604879
+      }
+    ],
+    "3.2 Create API service functions": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512272
+      }
+    ],
+    "4.1 Update AiConversationsPage component": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512303
+      }
+    ],
+    "5. Checkpoint - Verify backend and frontend integration": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512340
+      }
+    ],
+    "6.1 Implement backend filter logic": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512373
+      }
+    ],
+    "7. Final verification and cleanup": [
+      {
+        "executionId": "d876cb69-3552-488c-99c7-49e6a5c89fdd",
+        "chatSessionId": "sess_9972f9f9-57b6-43e2-8a03-584bfaf31b83",
+        "timestamp": 1786411512405
+      }
+    ]
+  }
+}

@@ -49,6 +49,7 @@ export const ROUTES = {
   SECRETARY_EMERGENCY_QUEUE: "/secretary/emergency-queue",
   SECRETARY_CONVERSATION_DETAIL: "/secretary/conversations/:conversationId",
   SECRETARY_FOLLOWUPS: "/secretary/followups",
+  SECRETARY_PATIENT_LIVE_CHAT: "/secretary/live-chat",
   PATIENT_DASHBOARD: "/patient/dashboard",
   PATIENT_BOOK: "/patient/appointments/book",
   PATIENT_APPOINTMENTS: "/patient/appointments",

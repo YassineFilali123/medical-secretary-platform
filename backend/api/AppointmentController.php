@@ -344,16 +344,10 @@ class AppointmentController
             return $slot;
         }
 
-        // A patient is limited to one active appointment per day — they cannot
-        // be in two waiting rooms at once, and the clinic wants to spread slots
-        // fairly.
-        $dailyCount = $this->patientDailyCount($patientId, $slot['date'], null);
-        if ($dailyCount >= 1) {
+        if ($this->patientHasAppointmentOnDate($patientId, $slot['date'], null)) {
             return [
                 'success' => false,
-                'error'   => $isSecretary
-                    ? 'That patient already has an appointment on this day. Only one appointment per day is allowed.'
-                    : 'You already have an appointment on this day. Only one appointment per day is allowed.',
+                'error'   => 'You can only have one appointment per day.',
             ];
         }
 
@@ -361,9 +355,7 @@ class AppointmentController
         if ($clash !== null) {
             return [
                 'success' => false,
-                'error'   => $isSecretary
-                    ? sprintf('That patient already has an appointment at %s on %s.', $clash, $slot['date'])
-                    : sprintf('You already have an appointment at %s on %s.', $clash, $slot['date']),
+                'error'   => 'You can only have one appointment per day.',
             ];
         }
 
@@ -532,6 +524,13 @@ class AppointmentController
             return ['success' => false, 'error' => 'That is already the appointment time.'];
         }
 
+        if ($this->patientHasAppointmentOnDate((int) $row['patient_user_id'], $slot['date'], (int) $row['id'])) {
+            return [
+                'success' => false,
+                'error'   => 'You can only have one appointment per day.',
+            ];
+        }
+
         $clash = $this->patientClash(
             (int) $row['patient_user_id'],
             $slot['date'],
@@ -542,9 +541,7 @@ class AppointmentController
         if ($clash !== null) {
             return [
                 'success' => false,
-                'error'   => $isSecretary
-                    ? sprintf('That patient already has an appointment at %s on %s.', $clash, $slot['date'])
-                    : sprintf('You already have an appointment at %s on %s.', $clash, $slot['date']),
+                'error'   => 'You can only have one appointment per day.',
             ];
         }
 
@@ -965,13 +962,11 @@ class AppointmentController
     }
 
     /**
-     * Count active appointments for a patient on a given date. Used to enforce
-     * the one-per-day limit. Cancelled and rejected appointments do not count —
-     * they freed their slot.
+     * A patient can have only one active appointment per day.
      */
-    private function patientDailyCount(int $patientId, string $date, ?int $excludeId): int
+    private function patientHasAppointmentOnDate(int $patientId, string $date, ?int $excludeId = null): bool
     {
-        $sql = "SELECT COUNT(*) FROM appointment
+        $sql = "SELECT 1 FROM appointment
                  WHERE patient_user_id = ? AND appointment_date = ?
                    AND status IN ('pending', 'confirmed', 'in_progress', 'completed')";
         $params = [$patientId, $date];
@@ -981,10 +976,10 @@ class AppointmentController
             $params[] = $excludeId;
         }
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->db->prepare($sql . ' LIMIT 1');
         $stmt->execute($params);
 
-        return (int) $stmt->fetchColumn();
+        return $stmt->fetchColumn() !== false;
     }
 
     // =========================================================================

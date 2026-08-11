@@ -501,11 +501,23 @@ class FollowUpController
             return ['success' => false, 'error' => 'Cannot book in the past.'];
         }
 
+        $patientId = (int) $row['patient_user_id'];
+
+        $hasAppt = $this->db->prepare(
+            "SELECT 1 FROM appointment
+              WHERE patient_user_id = ? AND appointment_date = ?
+                AND status IN ('pending', 'confirmed', 'in_progress', 'completed')
+              LIMIT 1"
+        );
+        $hasAppt->execute([$patientId, $date]);
+        if ($hasAppt->fetchColumn() !== false) {
+            return ['success' => false, 'error' => 'You can only have one appointment per day.'];
+        }
+
         if (preg_match('/^\d{2}:\d{2}$/', $time)) {
             $time .= ':00';
         }
 
-        $patientId = (int) $row['patient_user_id'];
         $doctorId = (int) $row['doctor_user_id'];
         $endTime = date('H:i:s', strtotime($time . ' +30 minutes'));
         $reason = 'Follow-up appointment' . ($row['note'] ? ': ' . $row['note'] : '');
@@ -615,6 +627,17 @@ class FollowUpController
         }
         if ($chosen < strtotime('today')) {
             return ['success' => false, 'error' => 'Cannot book in the past.'];
+        }
+
+        $hasAppt = $this->db->prepare(
+            "SELECT 1 FROM appointment
+              WHERE patient_user_id = ? AND appointment_date = ?
+                AND status IN ('pending', 'confirmed', 'in_progress', 'completed')
+              LIMIT 1"
+        );
+        $hasAppt->execute([$patientId, $date]);
+        if ($hasAppt->fetchColumn() !== false) {
+            return ['success' => false, 'error' => 'You can only have one appointment per day.'];
         }
 
         if (preg_match('/^\d{2}:\d{2}$/', $time)) {

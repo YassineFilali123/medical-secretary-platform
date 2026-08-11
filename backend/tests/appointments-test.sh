@@ -52,7 +52,7 @@ else
   check "  first of the pair books"     "$R" '"success":true'
   OVA=$(echo "$R" | sed 's/.*"appointment":{"id":\([0-9]*\).*/\1/')
   R=$(post $PATIENT /appointments/create "{\"doctorId\":$DOCTOR,\"date\":\"$ODATE\",\"time\":\"$BTIME\",\"reason\":\"Overlap B\"}")
-  check "patient cannot be in two places" "$R" 'already have an appointment'
+  check "patient cannot be in two places" "$R" 'one appointment per day'
   [ -n "$OVA" ] && "C:/xampp/mysql/bin/mysql.exe" -u root medisecretary -e "DELETE FROM appointment WHERE id=$OVA" 2>/dev/null
 fi
 

@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { FloatingPatientChat } from "@/components/ai-assistant/FloatingPatientChat";
 import type { UserRole } from "@/types/auth";
 
 type NavItem = {
@@ -118,6 +119,7 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     { label: "Live Operations", items: [
       { label: "Live Dashboard", icon: Radio, path: "/secretary/live-dashboard" },
       { label: "Active Conversations", icon: MessageSquare, path: "/secretary/active-conversations" },
+      { label: "Live Chat", icon: MessageCircle, path: "/secretary/live-chat" },
       { label: "Call Queue", icon: PhoneCall, path: "/secretary/call-queue" },
       { label: "Emergency Queue", icon: AlertCircle, path: "/secretary/emergency-queue" },
     ]},
@@ -152,12 +154,6 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
       { label: "Documents", icon: FileText, path: "/patient/documents" },
       { label: "Follow-ups", icon: Stethoscope, path: "/patient/followups" },
       { label: "Rate Consultations", icon: Star, path: "/patient/ratings" },
-    ]},
-    { label: "AI & Insights", items: [
-      { label: "AI Assistant", icon: Bot, path: "/patient/ai-assistant" },
-      { label: "Analytics", icon: PieChart, path: "/analytics" },
-      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     ]},
     { items: [
       { label: "Notifications", icon: Bell, path: "/patient/notifications" },
@@ -215,6 +211,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   conversations: "Conversations",
   "followups": "Follow-ups",
   "book": "Book Appointment",
+  "live-chat": "Live Chat",
 };
 
 function getBreadcrumbs(pathname: string) {
@@ -392,6 +389,8 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {user.role === "patient" && <FloatingPatientChat />}
     </div>
   );
 }

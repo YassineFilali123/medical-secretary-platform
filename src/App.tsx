@@ -59,6 +59,7 @@ const ConversationDetailPage = lazy(() => import("@/pages/secretary/Conversation
 const ScheduleAdjustmentsPage = lazy(() => import("@/pages/secretary/ScheduleAdjustmentsPage"));
 const SecretaryDocumentRequestsPage = lazy(() => import("@/pages/secretary/DocumentRequestsPage"));
 const SecretaryFollowUpsPage = lazy(() => import("@/pages/secretary/FollowUpsPage"));
+const SecretaryPatientLiveChatPage = lazy(() => import("@/pages/secretary/PatientLiveChatPage"));
 const LiveConsultationPage = lazy(() => import("@/pages/doctor/LiveConsultationPage"));
 
 const PatientDashboardPage = lazy(() => import("@/pages/patient/DashboardPage"));
@@ -149,6 +150,7 @@ export default function App() {
               <Route path={ROUTES.SECRETARY_SCHEDULE_ADJUSTMENTS} element={<ScheduleAdjustmentsPage />} />
               <Route path={ROUTES.SECRETARY_DOCUMENT_REQUESTS} element={<SecretaryDocumentRequestsPage />} />
               <Route path={ROUTES.SECRETARY_FOLLOWUPS} element={<SecretaryFollowUpsPage />} />
+              <Route path={ROUTES.SECRETARY_PATIENT_LIVE_CHAT} element={<SecretaryPatientLiveChatPage />} />
               <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
               <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
               <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />

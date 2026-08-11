@@ -25,6 +25,7 @@ require_once __DIR__ . '/ProfileController.php';
 require_once __DIR__ . '/SpecialtyController.php';
 require_once __DIR__ . '/AvailabilityController.php';
 require_once __DIR__ . '/AppointmentController.php';
+require_once __DIR__ . '/AiChatController.php';
 require_once __DIR__ . '/DoctorPatientController.php';
 require_once __DIR__ . '/Notifier.php';
 require_once __DIR__ . '/ScheduleAdjuster.php';
@@ -34,6 +35,7 @@ require_once __DIR__ . '/NotificationController.php';
 require_once __DIR__ . '/RatingController.php';
 require_once __DIR__ . '/DocumentRequestController.php';
 require_once __DIR__ . '/FollowUpController.php';
+require_once __DIR__ . '/LiveChatController.php';
 
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -76,6 +78,7 @@ $profile    = new ProfileController();
 $specialty  = new SpecialtyController();
 $availability = new AvailabilityController();
 $appointments = new AppointmentController();
+$aiChat = new AiChatController();
 $doctorPatients = new DoctorPatientController();
 $consultations  = new ConsultationController();
 $adjustments    = new AdjustmentController();
@@ -83,6 +86,7 @@ $notifications  = new NotificationController();
 $ratings        = new RatingController();
 $docRequests    = new DocumentRequestController();
 $followUps      = new FollowUpController();
+$liveChat       = new LiveChatController();
 
 try {
     $notFound = false;
@@ -197,6 +201,11 @@ try {
 
         case 'POST /api/appointments/status':
             $result = $appointments->updateStatus($body);
+            break;
+
+        // --- Patient AI chat. Gemini is invoked server-side only. ---
+        case 'POST /api/ai/chat':
+            $result = $aiChat->reply($body);
             break;
 
         // --- A doctor's own patients, derived from who has booked with them.
@@ -338,6 +347,43 @@ try {
 
         case 'POST /api/notifications/read':
             $result = $notifications->markRead($body);
+            break;
+
+        // --- Secretary ↔ Patient Live Chat ---
+        case 'POST /api/livechat/start':
+            $result = $liveChat->start();
+            break;
+
+        case 'GET /api/livechat/my':
+            $result = $liveChat->myChat();
+            break;
+
+        case 'GET /api/livechat/waiting':
+            $result = $liveChat->waitingQueue();
+            break;
+
+        case 'GET /api/livechat/active':
+            $result = $liveChat->myActiveChats();
+            break;
+
+        case 'POST /api/livechat/accept':
+            $result = $liveChat->accept($body);
+            break;
+
+        case 'GET /api/livechat/messages':
+            $result = $liveChat->messages($_GET);
+            break;
+
+        case 'POST /api/livechat/message':
+            $result = $liveChat->sendMessage($body);
+            break;
+
+        case 'POST /api/livechat/close':
+            $result = $liveChat->close($body);
+            break;
+
+        case 'GET /api/livechat/poll':
+            $result = $liveChat->poll($_GET);
             break;
 
         default:
