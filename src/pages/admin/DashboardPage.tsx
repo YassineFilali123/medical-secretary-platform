@@ -1,31 +1,48 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  Users, Stethoscope, UserCircle, MessageSquare,
-  CalendarClock, Activity, ShieldCheck, Brain,
-  ArrowRight, UserPlus, Settings,
+  ArrowRight,
+  BarChart3,
+  Brain,
+  CalendarClock,
+  FileText,
+  Loader2,
+  MessageSquare,
+  Settings,
+  ShieldCheck,
+  Star,
+  Stethoscope,
+  UserCircle,
+  UserPlus,
+  Users,
 } from "lucide-react";
-import { adminService } from "@/services/admin";
 import { useAuth } from "@/hooks/useAuth";
 import { StatCard } from "@/components/shared/StatCard";
+import { useAdminStatisticsQuery } from "@/hooks/queries/useAdminQueries";
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    patients: 0,
-    doctors: 0,
-    secretaries: 0,
-  });
 
-  useEffect(() => {
-    setStats({
-      totalUsers: adminService.getUserCount(),
-      patients: adminService.getUserCountByRole("patient"),
-      doctors: adminService.getUserCountByRole("doctor"),
-      secretaries: adminService.getUserCountByRole("secretary"),
-    });
-  }, []);
+  // Both windows come from the same admin statistics endpoint the Statistics
+  // page uses — there is no second source of truth for these numbers, and
+  // React Query shares the cache between the two screens.
+  const todayQuery = useAdminStatisticsQuery({ range: "today" });
+  const monthQuery = useAdminStatisticsQuery({ range: "month" });
+
+  const today = todayQuery.data ?? null;
+  const month = monthQuery.data ?? null;
+  const loading = todayQuery.isPending || monthQuery.isPending;
+  const error =
+    todayQuery.error || monthQuery.error ? "Could not load dashboard statistics." : null;
+
+  // Head counts are point-in-time, so either response carries them.
+  const k = month?.kpis ?? today?.kpis ?? null;
+  const t = today?.kpis ?? null;
+
+  const totalUsers =
+    k === null ? null : k.activePatients + k.totalDoctors + k.totalSecretaries + k.totalAdmins;
+
+  const show = (v: number | null | undefined) =>
+    loading ? "…" : v === null || v === undefined ? "—" : v;
 
   return (
     <div className="space-y-6">
@@ -34,11 +51,24 @@ export default function AdminDashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">Welcome back, {user?.name?.split(" ")[0]}</p>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Live user counts, derived from user.roles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} sub={`${adminService.getActiveUserCount()} active`} color="bg-gradient-primary" />
-        <StatCard icon={UserCircle} label="Patients" value={stats.patients} color="bg-gradient-health" />
-        <StatCard icon={Stethoscope} label="Doctors" value={stats.doctors} color="bg-gradient-soft text-primary" />
-        <StatCard icon={UserCircle} label="Secretaries" value={stats.secretaries} color="bg-gradient-primary" />
+        <StatCard
+          icon={Users}
+          label="Total Users"
+          value={show(totalUsers)}
+          sub="Active accounts"
+          color="bg-gradient-primary"
+        />
+        <StatCard icon={UserCircle} label="Patients" value={show(k?.activePatients)} color="bg-gradient-health" />
+        <StatCard icon={Stethoscope} label="Doctors" value={show(k?.totalDoctors)} color="bg-gradient-soft text-primary" />
+        <StatCard icon={UserCircle} label="Secretaries" value={show(k?.totalSecretaries)} color="bg-gradient-primary" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -47,55 +77,79 @@ export default function AdminDashboardPage() {
             <MessageSquare className="h-5 w-5 text-primary" />
             <span className="text-sm text-muted-foreground">AI Conversations</span>
           </div>
-          <div className="text-2xl font-semibold">1,247</div>
-          <div className="text-xs text-green-600 mt-1">&uarr; 12% from last month</div>
+          <div className="text-2xl font-semibold">{show(k?.aiConversations)}</div>
+          <div className="text-xs text-muted-foreground mt-1">This month</div>
         </div>
+
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
           <div className="flex items-center gap-3 mb-2">
             <CalendarClock className="h-5 w-5 text-primary" />
-            <span className="text-sm text-muted-foreground">Today's Appointments</span>
+            <span className="text-sm text-muted-foreground">Today&apos;s Appointments</span>
           </div>
-          <div className="text-2xl font-semibold">24</div>
-          <div className="text-xs text-muted-foreground mt-1">18 confirmed, 6 pending</div>
+          <div className="text-2xl font-semibold">{show(t?.totalAppointments)}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {loading || t === null
+              ? " "
+              : `${t.acceptedAppointments} confirmed, ${t.pendingAppointments} pending`}
+          </div>
         </div>
+
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
           <div className="flex items-center gap-3 mb-2">
-            <Activity className="h-5 w-5 text-green-500" />
-            <span className="text-sm text-muted-foreground">System Status</span>
+            <FileText className="h-5 w-5 text-primary" />
+            <span className="text-sm text-muted-foreground">Document Requests</span>
           </div>
-          <div className="text-2xl font-semibold text-green-600">Healthy</div>
-          <div className="text-xs text-muted-foreground mt-1">All systems operational</div>
+          <div className="text-2xl font-semibold">{show(k?.documentRequests)}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {loading || k === null ? " " : `${k.documentsPending} pending`}
+          </div>
         </div>
+
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
           <div className="flex items-center gap-3 mb-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <span className="text-sm text-muted-foreground">AI Accuracy</span>
+            <Star className="h-5 w-5 text-amber-400" />
+            <span className="text-sm text-muted-foreground">Average Rating</span>
           </div>
-          <div className="text-2xl font-semibold">94.2%</div>
-          <div className="text-xs text-green-600 mt-1">&uarr; 2.1% this week</div>
+          <div className="text-2xl font-semibold">
+            {loading ? "…" : (k?.averageRating ?? "—")}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {loading || k === null ? " " : `${k.totalRatings} rating${k.totalRatings === 1 ? "" : "s"} this month`}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <h2 className="mb-4 text-base font-semibold">Recent Activity</h2>
-          <div className="space-y-3">
-            {adminService.getActivityLogs().slice(0, 5).map((log) => (
-              <div key={log.id} className="flex items-start gap-3 border-b border-border pb-3 last:border-0">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary shrink-0">
-                  {log.user.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm"><span className="font-medium">{log.user}</span> {log.action} {log.resource}</div>
-                  <div className="text-xs text-muted-foreground truncate">{log.details}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{log.timestamp}</div>
-                </div>
-              </div>
-            ))}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold">This month at a glance</h2>
+            <Link to="/admin/statistics" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              Full statistics <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
-          <Link to="/admin/activity-logs" className="mt-4 inline-flex text-xs font-medium text-primary hover:underline items-center gap-1">
-            View all activity <ArrowRight className="h-3 w-3" />
-          </Link>
+
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : k === null ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No statistics available.</p>
+          ) : (
+            <div className="space-y-2">
+              {[
+                { label: "Appointments", value: k.totalAppointments },
+                { label: "Completed", value: k.completedAppointments },
+                { label: "Cancelled", value: k.cancelledAppointments },
+                { label: "Pending", value: k.pendingAppointments },
+                { label: "Active live chats", value: k.activeLiveChats },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between border-b border-border pb-2 text-sm last:border-0">
+                  <span className="text-muted-foreground">{row.label}</span>
+                  <span className="font-medium">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -111,30 +165,15 @@ export default function AdminDashboardPage() {
               <Link to="/admin/ai-config" className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                 <Brain className="h-5 w-5" /> AI Config
               </Link>
+              <Link to="/admin/statistics" className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                <BarChart3 className="h-5 w-5" /> Statistics
+              </Link>
+              <Link to="/admin/ratings" className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                <Star className="h-5 w-5" /> Ratings
+              </Link>
               <Link to="/admin/settings" className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                 <Settings className="h-5 w-5" /> Settings
               </Link>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <h2 className="mb-3 text-base font-semibold">System Overview</h2>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Active Sessions</span>
-                <span className="font-medium">12</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">API Usage Today</span>
-                <span className="font-medium">3,421</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Storage Used</span>
-                <span className="font-medium">156 GB / 200 GB</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-primary" style={{ width: "78%" }} />
-              </div>
             </div>
           </div>
         </div>

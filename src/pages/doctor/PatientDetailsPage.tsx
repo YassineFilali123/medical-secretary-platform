@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,7 +14,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { AppointmentStatusBadge } from "@/components/appointments";
-import { doctorPatientService, initials, type DoctorPatientRecord } from "@/services/patients";
+import { initials, type DoctorPatientRecord } from "@/services/patients";
+import { useDoctorPatientRecordQuery } from "@/hooks/queries/useDoctorQueries";
 import { TYPE_LABELS } from "@/types/appointment";
 
 type Tab = "overview" | "consultations" | "appointments";
@@ -23,31 +24,21 @@ export default function PatientDetailsPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const [tab, setTab] = useState<Tab>("overview");
 
-  const [record, setRecord] = useState<DoctorPatientRecord | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const parsedId = Number(patientId);
+  const validId = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
 
-  const load = useCallback(async () => {
-    const id = Number(patientId);
-    if (!Number.isInteger(id) || id <= 0) {
-      setError("That is not a valid patient reference.");
-      setLoading(false);
-      return;
-    }
+  const { data, isPending, error: queryError } = useDoctorPatientRecordQuery(validId);
 
-    try {
-      setRecord(await doctorPatientService.record(id));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load this patient.");
-    } finally {
-      setLoading(false);
-    }
-  }, [patientId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const record: DoctorPatientRecord | null = data ?? null;
+  const loading = validId !== null && isPending;
+  const error =
+    validId === null
+      ? "That is not a valid patient reference."
+      : queryError instanceof Error
+        ? queryError.message
+        : queryError
+          ? "Could not load this patient."
+          : null;
 
   if (loading) {
     return (

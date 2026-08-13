@@ -97,9 +97,12 @@ export default function RegisterPage() {
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
+              {/* "Clinic Admin" is deliberately not offered. Registration is
+                  public, so a self-service admin option would let anyone grant
+                  themselves the admin module. The backend rejects role=admin
+                  here too; admins are created by an existing admin. */}
               <SelectItem value="doctor">Doctor</SelectItem>
               <SelectItem value="secretary">Secretary</SelectItem>
-              <SelectItem value="admin">Clinic Admin</SelectItem>
               <SelectItem value="patient">Patient</SelectItem>
             </SelectContent>
           </Select>

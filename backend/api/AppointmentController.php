@@ -57,7 +57,8 @@ class AppointmentController
                   LEFT JOIN user_profile p ON p.user_id = u.id
                   LEFT JOIN specialty     s ON s.id = p.specialty_id
                  WHERE u.roles LIKE '%ROLE_DOCTOR%'
-                   AND u.status = 'active'";
+                   AND u.status = 'active'
+                   AND u.deleted_at IS NULL";
         $params = [];
 
         $rawSpecialty = $query['specialtyId'] ?? null;
@@ -112,7 +113,8 @@ class AppointmentController
                   FROM `user` u
                   LEFT JOIN user_profile p ON p.user_id = u.id
                  WHERE u.roles LIKE '%ROLE_PATIENT%'
-                   AND u.status = 'active'";
+                   AND u.status = 'active'
+                   AND u.deleted_at IS NULL";
         $params = [];
 
         $rawQ = $query['q'] ?? null;

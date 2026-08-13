@@ -303,6 +303,33 @@ export function formatDuration(totalSeconds: number): string {
 }
 
 // ── Rating Service ───────────────────────────────────────────
+/** One doctor's rating aggregates, for the admin ratings overview. */
+export type DoctorRatingSummary = {
+  id: number;
+  name: string;
+  status: "active" | "inactive";
+  avatarUrl: string | null;
+  specialty: string;
+  totalReviews: number;
+  averageRating: number | null;
+  distribution: Record<number, number>;
+  lastRatedAt: string | null;
+};
+
+export type DoctorRatingsOverview = {
+  doctorCount: number;
+  ratedDoctorCount: number;
+  totalReviews: number;
+  platformAverage: number | null;
+};
+
+export type DoctorSummaryFilters = {
+  q?: string;
+  /** Minimum average rating, 1–5. */
+  minRating?: string;
+  sort?: "name" | "highest" | "lowest" | "reviews";
+};
+
 export const ratingService = {
   submit: (input: { appointmentId: number; rating: number; review?: string }) =>
     post<{ ratingId: number; message: string }>("/ratings/submit", input),
@@ -321,4 +348,20 @@ export const ratingService = {
 
   allRatings: (limit = 50, offset = 0) =>
     get<{ ratings: RatingReview[]; total: number }>(`/ratings/all?limit=${limit}&offset=${offset}`),
+
+  /**
+   * Admin only: every doctor with their rating aggregates.
+   * The backend rejects non-admin callers with 403.
+   */
+  doctorsSummary: (filters: DoctorSummaryFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.q?.trim()) params.set("q", filters.q.trim());
+    if (filters.minRating && filters.minRating !== "all") params.set("minRating", filters.minRating);
+    if (filters.sort) params.set("sort", filters.sort);
+    const qs = params.toString();
+
+    return get<{ doctors: DoctorRatingSummary[]; summary: DoctorRatingsOverview }>(
+      `/ratings/doctors/summary${qs ? `?${qs}` : ""}`,
+    );
+  },
 };

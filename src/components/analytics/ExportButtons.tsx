@@ -3,12 +3,27 @@ import { analyticsService } from "@/services/analytics";
 
 type ExportButtonsProps = {
   onExport?: (type: "excel" | "pdf" | "print") => void;
+  /**
+   * Perform the export instead of the placeholder behaviour.
+   *
+   * The original implementation only ever showed an alert. Callers that pass
+   * this do the real work themselves; callers that don't keep the old
+   * behaviour, so the existing analytics pages are untouched.
+   */
+  handlers?: Partial<Record<"excel" | "pdf" | "print", () => void>>;
 };
 
-export function ExportButtons({ onExport }: ExportButtonsProps) {
+export function ExportButtons({ onExport, handlers }: ExportButtonsProps) {
   function handleExport(type: "excel" | "pdf" | "print") {
-    const filename = analyticsService.getExportData(type);
     onExport?.(type);
+
+    const handler = handlers?.[type];
+    if (handler) {
+      handler();
+      return;
+    }
+
+    const filename = analyticsService.getExportData(type);
     if (type === "print") {
       window.print();
       return;

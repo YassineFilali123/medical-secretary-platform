@@ -1,37 +1,26 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Star, Calendar, Clock, Loader2, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RatingModal } from "@/components/consultation/RatingModal";
-import { ratingService, type PendingRatingAppointment } from "@/services/consultation";
+import { type PendingRatingAppointment } from "@/services/consultation";
+import { usePendingRatingsQuery } from "@/hooks/queries/useDocumentQueries";
 
 /**
  * Patient ratings page — shows completed appointments that need rating,
  * and lets the patient submit 1-5 star ratings with optional reviews.
  */
 export default function PatientRatingsPage() {
-  const [pending, setPending] = useState<PendingRatingAppointment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [ratingTarget, setRatingTarget] = useState<PendingRatingAppointment | null>(null);
 
-  const loadPending = async () => {
-    try {
-      const data = await ratingService.pending();
-      setPending(data.appointments);
-    } catch {
-      // Non-critical
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadPending();
-  }, []);
+  // Submitting a rating invalidates this query (see useSubmitRatingMutation),
+  // so the rated appointment drops off the list on its own.
+  const { data, isPending: loading, refetch } = usePendingRatingsQuery();
+  const pending: PendingRatingAppointment[] = data?.appointments ?? [];
 
   const handleRatingSubmitted = () => {
     setRatingTarget(null);
-    void loadPending();
+    void refetch();
   };
 
   return (

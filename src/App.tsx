@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Outlet } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import { RoleRoute } from "@/routes/RoleRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -11,6 +12,7 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import UnauthorizedPage from "@/pages/UnauthorizedPage";
 
 const AdminDashboardPage = lazy(() => import("@/pages/admin/DashboardPage"));
 const UserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
@@ -20,6 +22,7 @@ const AiConfigurationPage = lazy(() => import("@/pages/admin/AiConfigurationPage
 const ConversationScenariosPage = lazy(() => import("@/pages/admin/ConversationScenariosPage"));
 const FaqManagementPage = lazy(() => import("@/pages/admin/FaqManagementPage"));
 const SpecialtiesPage = lazy(() => import("@/pages/admin/SpecialtiesPage"));
+const AdminDoctorRatingsPage = lazy(() => import("@/pages/admin/DoctorRatingsPage"));
 const StatisticsPage = lazy(() => import("@/pages/admin/StatisticsPage"));
 const ActivityLogsPage = lazy(() => import("@/pages/admin/ActivityLogsPage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SystemSettingsPage"));
@@ -34,28 +37,19 @@ const TodaysAppointmentsPage = lazy(() => import("@/pages/doctor/TodaysAppointme
 const DoctorPatientsPage = lazy(() => import("@/pages/doctor/PatientsPage"));
 const PatientDetailsPage = lazy(() => import("@/pages/doctor/PatientDetailsPage"));
 const DoctorAiConversationsPage = lazy(() => import("@/pages/doctor/AiConversationsPage"));
+const DoctorAiConversationDetailPage = lazy(() => import("@/pages/doctor/AiConversationDetailPage"));
 const AvailabilityPage = lazy(() => import("@/pages/doctor/AvailabilityPage"));
 const DoctorNotificationsPage = lazy(() => import("@/pages/doctor/NotificationsPage"));
 const DoctorProfilePage = lazy(() => import("@/pages/doctor/ProfilePage"));
 const DoctorSettingsPage = lazy(() => import("@/pages/doctor/SettingsPage"));
 
 const SecretaryDashboardPage = lazy(() => import("@/pages/secretary/DashboardPage"));
-const LiveConversationsPage = lazy(() => import("@/pages/secretary/LiveConversationsPage"));
 const AppointmentManagementPage = lazy(() => import("@/pages/secretary/AppointmentManagementPage"));
-const PatientQueuePage = lazy(() => import("@/pages/secretary/PatientQueuePage"));
-const EmergencyCasesPage = lazy(() => import("@/pages/secretary/EmergencyCasesPage"));
 const SecretaryCalendarPage = lazy(() => import("@/pages/secretary/CalendarPage"));
-const AiMonitoringPage = lazy(() => import("@/pages/secretary/AiMonitoringPage"));
-const CallHistoryPage = lazy(() => import("@/pages/secretary/CallHistoryPage"));
 const SecretaryNotificationsPage = lazy(() => import("@/pages/secretary/NotificationsPage"));
 const SecretaryProfilePage = lazy(() => import("@/pages/secretary/ProfilePage"));
 const SecretarySettingsPage = lazy(() => import("@/pages/secretary/SettingsPage"));
-const MonitoringLayout = lazy(() => import("@/pages/secretary/MonitoringLayout"));
-const LiveDashboardPage = lazy(() => import("@/pages/secretary/LiveDashboardPage"));
 const ActiveConversationsPage = lazy(() => import("@/pages/secretary/ActiveConversationsPage"));
-const CallQueuePage = lazy(() => import("@/pages/secretary/CallQueuePage"));
-const EmergencyQueuePage = lazy(() => import("@/pages/secretary/EmergencyQueuePage"));
-const ConversationDetailPage = lazy(() => import("@/pages/secretary/ConversationDetailPage"));
 const ScheduleAdjustmentsPage = lazy(() => import("@/pages/secretary/ScheduleAdjustmentsPage"));
 const SecretaryDocumentRequestsPage = lazy(() => import("@/pages/secretary/DocumentRequestsPage"));
 const SecretaryFollowUpsPage = lazy(() => import("@/pages/secretary/FollowUpsPage"));
@@ -73,7 +67,6 @@ const PatientNotificationsPage = lazy(() => import("@/pages/patient/Notification
 const PatientProfilePage = lazy(() => import("@/pages/patient/ProfilePage"));
 const PatientRatingsPage = lazy(() => import("@/pages/patient/RatingsPage"));
 const PatientSettingsPage = lazy(() => import("@/pages/patient/SettingsPage"));
-const AiChatPage = lazy(() => import("@/pages/shared/AiChatPage"));
 const AiAssistantHomePage = lazy(() => import("@/pages/shared/AiAssistantHomePage"));
 const AiConversationPage = lazy(() => import("@/pages/shared/AiConversationPage"));
 const AiConversationHistoryPage = lazy(() => import("@/pages/shared/AiConversationHistory"));
@@ -105,21 +98,27 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route element={<SuspenseWrapper />}>
-              <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-              <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
-              <Route path={ROUTES.ADMIN_USER_DETAIL} element={<UserDetailsPage />} />
-              <Route path={ROUTES.ADMIN_ROLES} element={<RolesAndPermissionsPage />} />
-              <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
-              <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
-              <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
-              <Route path={ROUTES.ADMIN_SPECIALTIES} element={<SpecialtiesPage />} />
-              <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
-              <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
-              <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
-              <Route path={ROUTES.ADMIN_APPOINTMENTS} element={<AdminAppointmentListPage />} />
-              <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
-              <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
-              <Route path={ROUTES.AI_CHAT} element={<AiChatPage />} />
+              {/* Admin pages are gated on the role, not just on being signed
+                  in. The backend enforces this independently; this only keeps
+                  non-admins from landing on a page of permission errors. */}
+              <Route element={<RoleRoute allow={["admin"]} />}>
+                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
+                <Route path={ROUTES.ADMIN_USER_DETAIL} element={<UserDetailsPage />} />
+                <Route path={ROUTES.ADMIN_ROLES} element={<RolesAndPermissionsPage />} />
+                <Route path={ROUTES.ADMIN_AI_CONFIG} element={<AiConfigurationPage />} />
+                <Route path={ROUTES.ADMIN_SCENARIOS} element={<ConversationScenariosPage />} />
+                <Route path={ROUTES.ADMIN_FAQS} element={<FaqManagementPage />} />
+                <Route path={ROUTES.ADMIN_SPECIALTIES} element={<SpecialtiesPage />} />
+                <Route path={ROUTES.ADMIN_RATINGS} element={<AdminDoctorRatingsPage />} />
+                <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
+                <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
+                <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
+                <Route path={ROUTES.ADMIN_APPOINTMENTS} element={<AdminAppointmentListPage />} />
+                <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
+                <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
+              </Route>
+              <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
               <Route path={ROUTES.AI_ASSISTANT_HOME} element={<AiAssistantHomePage />} />
               <Route path={`${ROUTES.AI_ASSISTANT_CHAT}/:conversationId?`} element={<AiConversationPage />} />
               <Route path={ROUTES.AI_ASSISTANT_HISTORY} element={<AiConversationHistoryPage />} />
@@ -131,6 +130,10 @@ export default function App() {
               <Route path={ROUTES.ANALYTICS_DOCTORS} element={<DoctorAnalyticsPage />} />
               <Route path={ROUTES.ANALYTICS_CALLS} element={<CallAnalyticsPage />} />
 
+              {/* Each role's pages are gated on that role. Previously any
+                  signed-in user could open another role's dashboard; the API
+                  refused the data, so the page simply filled with errors. */}
+              <Route element={<RoleRoute allow={["doctor"]} />}>
               <Route path={ROUTES.DOCTOR_DASHBOARD} element={<DoctorDashboardPage />} />
               <Route path={ROUTES.DOCTOR_SCHEDULE} element={<SchedulePage />} />
               <Route path={ROUTES.DOCTOR_CALENDAR} element={<DoctorCalendarPage />} />
@@ -138,36 +141,31 @@ export default function App() {
               <Route path={ROUTES.DOCTOR_PATIENTS} element={<DoctorPatientsPage />} />
               <Route path={ROUTES.DOCTOR_PATIENT_DETAIL} element={<PatientDetailsPage />} />
               <Route path={ROUTES.DOCTOR_AI_CONVERSATIONS} element={<DoctorAiConversationsPage />} />
+              <Route path={ROUTES.DOCTOR_AI_CONVERSATION_DETAIL} element={<DoctorAiConversationDetailPage />} />
               <Route path={ROUTES.DOCTOR_AVAILABILITY} element={<AvailabilityPage />} />
               <Route path={ROUTES.DOCTOR_LIVE_CONSULTATION} element={<LiveConsultationPage />} />
               <Route path={ROUTES.DOCTOR_NOTIFICATIONS} element={<DoctorNotificationsPage />} />
               <Route path={ROUTES.DOCTOR_PROFILE} element={<DoctorProfilePage />} />
               <Route path={ROUTES.DOCTOR_SETTINGS} element={<DoctorSettingsPage />} />
+              </Route>
 
+              <Route element={<RoleRoute allow={["secretary"]} />}>
               <Route path={ROUTES.SECRETARY_DASHBOARD} element={<SecretaryDashboardPage />} />
-              <Route path={ROUTES.SECRETARY_LIVE_CONVERSATIONS} element={<LiveConversationsPage />} />
               <Route path={ROUTES.SECRETARY_APPOINTMENTS} element={<AppointmentManagementPage />} />
               <Route path={ROUTES.SECRETARY_SCHEDULE_ADJUSTMENTS} element={<ScheduleAdjustmentsPage />} />
               <Route path={ROUTES.SECRETARY_DOCUMENT_REQUESTS} element={<SecretaryDocumentRequestsPage />} />
               <Route path={ROUTES.SECRETARY_FOLLOWUPS} element={<SecretaryFollowUpsPage />} />
               <Route path={ROUTES.SECRETARY_PATIENT_LIVE_CHAT} element={<SecretaryPatientLiveChatPage />} />
-              <Route path={ROUTES.SECRETARY_PATIENT_QUEUE} element={<PatientQueuePage />} />
-              <Route path={ROUTES.SECRETARY_EMERGENCY_CASES} element={<EmergencyCasesPage />} />
               <Route path={ROUTES.SECRETARY_CALENDAR} element={<SecretaryCalendarPage />} />
-              <Route path={ROUTES.SECRETARY_AI_MONITORING} element={<AiMonitoringPage />} />
-              <Route path={ROUTES.SECRETARY_CALL_HISTORY} element={<CallHistoryPage />} />
               <Route path={ROUTES.SECRETARY_NOTIFICATIONS} element={<SecretaryNotificationsPage />} />
               <Route path={ROUTES.SECRETARY_PROFILE} element={<SecretaryProfilePage />} />
               <Route path={ROUTES.SECRETARY_SETTINGS} element={<SecretarySettingsPage />} />
-
-              <Route element={<MonitoringLayout />}>
-                <Route path={ROUTES.SECRETARY_LIVE_DASHBOARD} element={<LiveDashboardPage />} />
-                <Route path={ROUTES.SECRETARY_ACTIVE_CONVERSATIONS} element={<ActiveConversationsPage />} />
-                <Route path={ROUTES.SECRETARY_CALL_QUEUE} element={<CallQueuePage />} />
-                <Route path={ROUTES.SECRETARY_EMERGENCY_QUEUE} element={<EmergencyQueuePage />} />
-                <Route path={ROUTES.SECRETARY_CONVERSATION_DETAIL} element={<ConversationDetailPage />} />
+              {/* Backed by the real live_chat data. The former MonitoringLayout
+                  wrapper and its simulator-driven siblings were removed. */}
+              <Route path={ROUTES.SECRETARY_ACTIVE_CONVERSATIONS} element={<ActiveConversationsPage />} />
               </Route>
 
+              <Route element={<RoleRoute allow={["patient"]} />}>
               <Route path={ROUTES.PATIENT_DASHBOARD} element={<PatientDashboardPage />} />
               <Route path={ROUTES.PATIENT_BOOK} element={<BookAppointmentPage />} />
               <Route path={ROUTES.PATIENT_APPOINTMENTS} element={<MyAppointmentsPage />} />
@@ -179,6 +177,7 @@ export default function App() {
               <Route path={ROUTES.PATIENT_PROFILE} element={<PatientProfilePage />} />
               <Route path={ROUTES.PATIENT_RATINGS} element={<PatientRatingsPage />} />
               <Route path={ROUTES.PATIENT_SETTINGS} element={<PatientSettingsPage />} />
+              </Route>
             </Route>
           </Route>
         </Route>

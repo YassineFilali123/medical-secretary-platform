@@ -16,6 +16,11 @@ type DateRangeFilterProps = {
   endDate?: string;
   onStartDateChange?: (date: string) => void;
   onEndDateChange?: (date: string) => void;
+  /**
+   * Override which ranges are offered. Defaults to the rolling windows the
+   * analytics pages use, so existing callers are unchanged.
+   */
+  ranges?: { value: DateRange; label: string }[];
 };
 
 export function DateRangeFilter({
@@ -25,11 +30,12 @@ export function DateRangeFilter({
   endDate,
   onStartDateChange,
   onEndDateChange,
+  ranges = DATE_RANGES,
 }: DateRangeFilterProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Calendar className="h-4 w-4 text-muted-foreground" />
-      {DATE_RANGES.map((range) => (
+      {ranges.map((range) => (
         <button
           key={range.value}
           onClick={() => onChange(range.value)}

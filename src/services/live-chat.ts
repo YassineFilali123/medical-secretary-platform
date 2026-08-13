@@ -16,6 +16,14 @@ export type LiveChat = {
   createdAt: string;
   acceptedAt: string | null;
   closedAt: string | null;
+
+  // Supplied by /livechat/active only, for the Active Conversations list.
+  // Optional so the other endpoints returning a LiveChat are unaffected.
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  lastMessageRole?: "patient" | "secretary" | null;
+  /** Patient messages the assigned secretary has not read yet. */
+  unreadCount?: number;
 };
 
 export type LiveChatMessage = {

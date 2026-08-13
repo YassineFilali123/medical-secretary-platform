@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { realtime } from "@/lib/realtime";
+import { useLiveChatListSocket, useLiveChatSocket } from "@/hooks/useLiveChatSocket";
+import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 import {
   MessageCircle,
   Clock,
@@ -201,6 +205,7 @@ function Toast({
 // ---------------------------------------------------------------------------
 
 export default function PatientLiveChatPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [waitingChats, setWaitingChats] = useState<LiveChat[]>([]);
   const [activeChats, setActiveChats] = useState<LiveChat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
@@ -258,24 +263,35 @@ export default function PatientLiveChatPage() {
     }
   }, [selectedChatId]);
 
-  // ── Poll new messages in selected chat ───────────────────────────────────
-  const pollMessages = useCallback(async () => {
-    if (selectedChatId === null) return;
-    try {
-      const res = await liveChatService.poll(selectedChatId, lastMsgIdRef.current);
-      if (res.messages.length > 0) {
-        setMessages((prev) => [...prev, ...res.messages]);
-        lastMsgIdRef.current = res.messages[res.messages.length - 1]!.id;
-      }
-      // If the patient somehow caused the chat to close (shouldn't happen from
-      // secretary perspective, but defensive check):
-      if (res.chat.status === "closed") {
-        fetchActive();
-      }
-    } catch {
-      // silently retry
-    }
-  }, [selectedChatId, fetchActive]);
+  // ── Realtime ─────────────────────────────────────────────────────────────
+  // Messages now arrive over the WebSocket instead of a 3-second poll. History
+  // is still loaded over HTTP in openChat(); this only appends what comes after.
+  const handleRealtimeMessage = useCallback((message: LiveChatMessage) => {
+    setMessages((prev) => {
+      // The sender already appended its own message optimistically, and a
+      // reconnect can redeliver — so ignore anything already held.
+      if (prev.some((m) => m.id === message.id)) return prev;
+      lastMsgIdRef.current = Math.max(lastMsgIdRef.current, message.id);
+      return [...prev, message];
+    });
+  }, []);
+
+  const handleChatEvent = useCallback(
+    (event: "accepted" | "closed") => {
+      if (event === "closed") fetchActive();
+    },
+    [fetchActive],
+  );
+
+  const { status: socketStatus } = useLiveChatSocket(
+    selectedChatId,
+    handleRealtimeMessage,
+    handleChatEvent,
+  );
+
+  // The queue and the assigned-chat list are refreshed by socket events (a
+  // patient joining, an accept, a close) rather than on a timer.
+  useLiveChatListSocket();
 
   // Initial load
   useEffect(() => {
@@ -283,24 +299,35 @@ export default function PatientLiveChatPage() {
     fetchActive();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Poll waiting queue every 5 s
+  // Socket events invalidate the React Query live-chat keys; mirror that into
+  // this page's local lists, which predate those queries.
   useEffect(() => {
-    const id = setInterval(fetchWaiting, 5000);
-    return () => clearInterval(id);
-  }, [fetchWaiting]);
+    const off = realtime.onEvent((event) => {
+      if (event.type === "waiting" || event.type === "accepted" || event.type === "closed") {
+        fetchWaiting();
+        fetchActive();
+      }
+    });
+    return off;
+  }, [fetchWaiting, fetchActive]);
 
-  // Poll active chats every 5 s
+  // Open the conversation named in ?chatId=, so Active Conversations can link
+  // straight into this interface instead of duplicating it. Runs once the
+  // active list has arrived, and only for a chat this secretary actually owns —
+  // the list itself is already scoped to them by the server.
   useEffect(() => {
-    const id = setInterval(fetchActive, 5000);
-    return () => clearInterval(id);
-  }, [fetchActive]);
+    const requested = Number(searchParams.get("chatId"));
+    if (!Number.isInteger(requested) || requested <= 0) return;
+    if (selectedChatId === requested) return;
+    if (!activeChats.some((c) => c.id === requested)) return;
 
-  // Poll messages every 3 s when a chat is selected
-  useEffect(() => {
-    if (selectedChatId === null) return;
-    const id = setInterval(pollMessages, 3000);
-    return () => clearInterval(id);
-  }, [selectedChatId, pollMessages]);
+    void openChat(requested);
+    // Drop the parameter once consumed so a later manual selection is not
+    // undone by this effect re-firing.
+    setSearchParams({}, { replace: true });
+    // openChat is redefined each render; depending on it would re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChats, searchParams, selectedChatId, setSearchParams]);
 
   // ── Open a chat (load all messages) ─────────────────────────────────────
   const openChat = async (chatId: number) => {
@@ -493,15 +520,18 @@ export default function PatientLiveChatPage() {
                     <p className="font-semibold text-foreground">
                       {selectedChat.patientName ?? `Patient #${selectedChat.patientId}`}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Active since{" "}
-                      {selectedChat.acceptedAt
-                        ? new Date(selectedChat.acceptedAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "—"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        Active since{" "}
+                        {selectedChat.acceptedAt
+                          ? new Date(selectedChat.acceptedAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                      </p>
+                      <ConnectionStatus status={socketStatus} />
+                    </div>
                   </div>
                 </div>
                 <button

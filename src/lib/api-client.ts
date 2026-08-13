@@ -1,7 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from "axios";
 import type { ApiResponse } from "@/models";
+import { API_BASE_URL } from "./api-config";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
+const API_URL = API_BASE_URL;
 
 const TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";

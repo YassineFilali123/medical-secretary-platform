@@ -217,6 +217,138 @@ class RatingController
     }
 
     // =========================================================================
+    // GET /api/ratings/doctors/summary[?q=&minRating=&sort=]
+    //
+    // Every doctor on the platform with their rating aggregates, for the admin
+    // ratings screen. Admin only.
+    //
+    // Doctors who have never been rated are included (LEFT JOIN) — "nobody has
+    // reviewed this doctor" is exactly the kind of thing an administrator needs
+    // to see, and dropping them would quietly hide most of the directory.
+    //
+    // The per-doctor figures are the same ones computeStats() produces for a
+    // single doctor; they are aggregated in one query here rather than looping,
+    // so the screen costs one round trip instead of one per doctor.
+    // =========================================================================
+    public function doctorsSummary(array $query): array
+    {
+        $userId = $this->currentUserId(['ROLE_ADMIN']);
+        if (is_array($userId)) {
+            return $userId;
+        }
+
+        $sql = "SELECT u.id, u.name, u.status,
+                       p.avatar_url, s.name AS specialty,
+                       COUNT(r.id) AS total,
+                       ROUND(AVG(r.rating), 2) AS average,
+                       SUM(CASE WHEN r.rating = 1 THEN 1 ELSE 0 END) AS star_1,
+                       SUM(CASE WHEN r.rating = 2 THEN 1 ELSE 0 END) AS star_2,
+                       SUM(CASE WHEN r.rating = 3 THEN 1 ELSE 0 END) AS star_3,
+                       SUM(CASE WHEN r.rating = 4 THEN 1 ELSE 0 END) AS star_4,
+                       SUM(CASE WHEN r.rating = 5 THEN 1 ELSE 0 END) AS star_5,
+                       MAX(r.created_at) AS last_rated_at
+                  FROM `user` u
+                  LEFT JOIN user_profile  p ON p.user_id = u.id
+                  LEFT JOIN specialty     s ON s.id = p.specialty_id
+                  LEFT JOIN doctor_rating r ON r.doctor_user_id = u.id
+                 WHERE JSON_CONTAINS(u.roles, '\"ROLE_DOCTOR\"')
+                   AND u.deleted_at IS NULL";
+        $params = [];
+
+        // --- Search doctor ---------------------------------------------------
+        $rawQ = $query['q'] ?? null;
+        if (is_string($rawQ) && trim($rawQ) !== '') {
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], trim($rawQ)) . '%';
+            $sql .= ' AND (u.name LIKE ? OR s.name LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql .= ' GROUP BY u.id, u.name, u.status, p.avatar_url, s.name';
+
+        // --- Filter by rating (minimum average) ------------------------------
+        $minRating = $query['minRating'] ?? null;
+        if ($minRating !== null && $minRating !== '' && $minRating !== 'all') {
+            if (!is_numeric($minRating) || (float) $minRating < 1 || (float) $minRating > 5) {
+                return ['success' => false, 'error' => 'minRating must be a number between 1 and 5.'];
+            }
+            // HAVING, not WHERE: the average only exists after grouping. This
+            // also drops unrated doctors, which is the right behaviour when the
+            // admin is explicitly filtering on a score.
+            $sql .= ' HAVING AVG(r.rating) >= ?';
+            $params[] = (float) $minRating;
+        }
+
+        // --- Sorting ----------------------------------------------------------
+        // Whitelisted: these land in the SQL string, so they can never come
+        // from user input directly.
+        $sort = is_string($query['sort'] ?? null) ? $query['sort'] : 'name';
+        // The aggregate expressions are repeated rather than referenced by their
+        // SELECT alias: MariaDB rejects an alias that wraps a group function
+        // once it appears inside an ORDER BY expression such as "x IS NULL".
+        $orderBy = [
+            'name'    => 'u.name ASC',
+            // An unrated doctor has a NULL average. "IS NULL" sorts those last
+            // in both directions — they are neither the best nor the worst.
+            'highest' => 'AVG(r.rating) IS NULL, AVG(r.rating) DESC, COUNT(r.id) DESC',
+            'lowest'  => 'AVG(r.rating) IS NULL, AVG(r.rating) ASC,  COUNT(r.id) DESC',
+            'reviews' => 'COUNT(r.id) DESC, u.name ASC',
+        ];
+        if (!isset($orderBy[$sort])) {
+            return ['success' => false, 'error' => 'sort must be one of: name, highest, lowest, reviews.'];
+        }
+        $sql .= ' ORDER BY ' . $orderBy[$sort];
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        $doctors = array_map(static function (array $r): array {
+            return [
+                'id'            => (int) $r['id'],
+                'name'          => $r['name'],
+                'status'        => $r['status'],
+                'avatarUrl'     => $r['avatar_url'],
+                'specialty'     => $r['specialty'] ?? 'General Practice',
+                'totalReviews'  => (int) $r['total'],
+                'averageRating' => $r['average'] !== null ? round((float) $r['average'], 1) : null,
+                'distribution'  => [
+                    1 => (int) $r['star_1'],
+                    2 => (int) $r['star_2'],
+                    3 => (int) $r['star_3'],
+                    4 => (int) $r['star_4'],
+                    5 => (int) $r['star_5'],
+                ],
+                'lastRatedAt'   => $r['last_rated_at'],
+            ];
+        }, $stmt->fetchAll());
+
+        // Platform-wide figures, so the admin has a baseline to read the table
+        // against. Computed from the same rows the table is built from.
+        $rated = array_values(array_filter(
+            $doctors,
+            static fn(array $d): bool => $d['totalReviews'] > 0
+        ));
+        $totalReviews = array_sum(array_map(static fn(array $d): int => $d['totalReviews'], $doctors));
+
+        return [
+            'success' => true,
+            'doctors' => $doctors,
+            'summary' => [
+                'doctorCount'       => count($doctors),
+                'ratedDoctorCount'  => count($rated),
+                'totalReviews'      => $totalReviews,
+                'platformAverage'   => $rated === [] ? null : round(
+                    array_sum(array_map(
+                        static fn(array $d): float => (float) $d['averageRating'] * $d['totalReviews'],
+                        $rated
+                    )) / max(1, $totalReviews),
+                    1
+                ),
+            ],
+        ];
+    }
+
+    // =========================================================================
     // GET /api/ratings/check?appointmentId=10
     //
     // Has the patient already rated this appointment?

@@ -1,6 +1,7 @@
 import type { User, LoginCredentials, UserRole } from "@/types/auth";
+import { API_BASE_URL } from "@/lib/api-config";
 
-const API_URL = "http://localhost:8080/api";
+const API_URL = API_BASE_URL;
 
 const TOKEN_KEY = "access_token";
 const USER_KEY = "auth_user";

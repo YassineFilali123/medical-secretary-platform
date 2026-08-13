@@ -18,6 +18,11 @@ return [
     // that skewed "is this slot in the past?" and, near midnight, the date.
     'timezone' => 'Africa/Casablanca',
 
+    // Realtime (WebSocket) relay. The secret must match REALTIME_SECRET in
+    // backend/realtime/server.js; only the local backend may publish.
+    'realtime_publish_url' => 'http://127.0.0.1:8081/publish',
+    'realtime_secret' => 'local-dev-realtime-secret',
+
     'code_length' => 6,
     'code_expiry_minutes' => 10,
 ];

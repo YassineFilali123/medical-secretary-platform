@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { User, LoginCredentials, UserRole } from "@/types/auth";
 import { authService } from "@/services/auth";
 import { ROUTES } from "@/constants/routes";
+import { API_BASE_URL } from "@/lib/api-config";
 
 type AuthContextValue = {
   user: User | null;
@@ -26,11 +27,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     const stored = authService.getStoredUser();
-    if (stored) {
-      setUser(stored);
+
+    if (!stored) {
+      setIsInitialized(true);
+      return;
     }
-    setIsInitialized(true);
+
+    // Show the cached user immediately so the app does not flash the login
+    // screen, then reconcile it with the server.
+    setUser(stored);
+
+    // The cached role is a snapshot from the last sign-in. If an administrator
+    // has since changed this account's role, deactivated it, or deleted it, the
+    // snapshot is stale — and the backend, which reads user.roles on every
+    // request, would start refusing everything the stale UI offers. Re-reading
+    // the profile on load keeps the two in step.
+    revalidateSession()
+      .then((fresh) => {
+        if (cancelled) return;
+
+        if (fresh === null) {
+          // Deactivated, deleted, or the token no longer resolves.
+          authService.logout();
+          setUser(null);
+          return;
+        }
+
+        setUser(fresh);
+        localStorage.setItem("auth_user", JSON.stringify(fresh));
+      })
+      .catch(() => {
+        // Server unreachable: keep the cached user rather than signing someone
+        // out over a dropped connection. The backend still refuses anything
+        // this role should not reach.
+      })
+      .finally(() => {
+        if (!cancelled) setIsInitialized(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(
@@ -81,8 +120,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
+/**
+ * Re-read the signed-in user from the server.
+ *
+ * Returns the current user, or null when the session is no longer valid —
+ * deleted, deactivated, or an unknown token. Throws only on network failure so
+ * the caller can tell "signed out" apart from "server unreachable".
+ */
+async function revalidateSession(): Promise<User | null> {
+  const token = localStorage.getItem("access_token");
+  if (!token) return null;
+
+  const res = await fetch(`${API_BASE_URL}/profile`, {
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json();
+  if (!data.success || !data.profile) return null;
+
+  const profile = data.profile;
+
+  // A deactivated account keeps its row, so status has to be checked here too.
+  if (profile.status && profile.status !== "active") return null;
+
+  return {
+    id: String(profile.id),
+    email: profile.email,
+    name: profile.name,
+    role: (profile.roles?.[0]?.replace("ROLE_", "").toLowerCase() || "patient") as UserRole,
+  };
+}
+
 async function loginToApi(credentials: LoginCredentials) {
-  const res = await fetch("http://localhost:8080/api/login", {
+  const res = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -121,7 +191,7 @@ async function loginToApi(credentials: LoginCredentials) {
 }
 
 async function registerOnApi(data: { email: string; password: string; name: string; role: string }) {
-  const res = await fetch("http://localhost:8080/api/register", {
+  const res = await fetch(`${API_BASE_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: data.name, email: data.email, password: data.password, role: data.role }),

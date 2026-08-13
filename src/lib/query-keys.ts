@@ -4,6 +4,86 @@ export const queryKeys = {
     user: () => [...queryKeys.auth.all, "user"] as const,
   },
 
+  /**
+   * Keys for the endpoints the app actually calls.
+   *
+   * The groups further down predate the real API and were shaped around mock
+   * services; these are the ones the live query hooks use. Every mutation
+   * invalidates by the broadest key that could be affected — `.all` — because a
+   * stale list is a worse failure than one extra request.
+   */
+  availability: {
+    all: ["availability"] as const,
+    schedule: () => [...queryKeys.availability.all, "schedule"] as const,
+    slots: (doctorId: number, from: string, to: string) =>
+      [...queryKeys.availability.all, "slots", doctorId, from, to] as const,
+  },
+
+  doctorPatients: {
+    all: ["doctorPatients"] as const,
+    list: (search?: string) => [...queryKeys.doctorPatients.all, "list", search ?? ""] as const,
+    record: (id: number) => [...queryKeys.doctorPatients.all, "record", id] as const,
+  },
+
+  doctorConversations: {
+    all: ["doctorConversations"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.doctorConversations.all, "list", filters ?? {}] as const,
+    detail: (id: number) => [...queryKeys.doctorConversations.all, "detail", id] as const,
+  },
+
+  liveChat: {
+    all: ["liveChat"] as const,
+    waiting: () => [...queryKeys.liveChat.all, "waiting"] as const,
+    active: () => [...queryKeys.liveChat.all, "active"] as const,
+    mine: () => [...queryKeys.liveChat.all, "mine"] as const,
+  },
+
+  documents: {
+    all: ["documents"] as const,
+    requests: (status?: string) =>
+      [...queryKeys.documents.all, "requests", status ?? "all"] as const,
+    mine: () => [...queryKeys.documents.all, "mine"] as const,
+  },
+
+  ratings: {
+    all: ["ratings"] as const,
+    doctorsSummary: (filters?: Record<string, unknown>) =>
+      [...queryKeys.ratings.all, "doctorsSummary", filters ?? {}] as const,
+    doctorStats: (doctorId: number) =>
+      [...queryKeys.ratings.all, "doctorStats", doctorId] as const,
+    doctorReviews: (doctorId: number, limit: number) =>
+      [...queryKeys.ratings.all, "doctorReviews", doctorId, limit] as const,
+    pending: () => [...queryKeys.ratings.all, "pending"] as const,
+  },
+
+  adminUsers: {
+    all: ["adminUsers"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.adminUsers.all, "list", filters ?? {}] as const,
+    detail: (id: number) => [...queryKeys.adminUsers.all, "detail", id] as const,
+    roleSummary: () => [...queryKeys.adminUsers.all, "roleSummary"] as const,
+  },
+
+  adminStatistics: {
+    all: ["adminStatistics"] as const,
+    range: (query: Record<string, unknown>) =>
+      [...queryKeys.adminStatistics.all, query] as const,
+  },
+
+  adminAi: {
+    all: ["adminAi"] as const,
+    settings: () => [...queryKeys.adminAi.all, "settings"] as const,
+    faqs: (filters?: Record<string, unknown>) =>
+      [...queryKeys.adminAi.all, "faqs", filters ?? {}] as const,
+    scenarios: () => [...queryKeys.adminAi.all, "scenarios"] as const,
+  },
+
+  specialties: {
+    all: ["specialties"] as const,
+    list: () => [...queryKeys.specialties.all, "list"] as const,
+  },
+
   appointments: {
     all: ["appointments"] as const,
     lists: () => [...queryKeys.appointments.all, "list"] as const,

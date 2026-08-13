@@ -2,16 +2,13 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Bell,
   BookOpen,
   Bot,
-  Brain,
   Calendar,
   CalendarClock,
   ChevronRight,
-  ClipboardList,
   Clock,
   Cpu,
   FileText,
@@ -21,10 +18,7 @@ import {
   Menu,
   MessageSquare,
   MessageCircle,
-  Phone,
   Radio,
-  PhoneCall,
-  AlertCircle,
   Settings,
   Shield,
   Stethoscope,
@@ -71,16 +65,13 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
       { label: "Roles & Permissions", icon: Shield, path: "/admin/roles" },
       { label: "AI Configuration", icon: Cpu, path: "/admin/ai-config" },
       { label: "FAQ Library", icon: BookOpen, path: "/admin/faqs" },
+      { label: "Conversation Scenarios", icon: MessageSquare, path: "/admin/scenarios" },
       { label: "Specialties", icon: Stethoscope, path: "/admin/specialties" },
+      { label: "Doctor Ratings", icon: Star, path: "/admin/ratings" },
     ]},
     { label: "Insights", items: [
       { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
       { label: "Analytics", icon: PieChart, path: "/analytics" },
-      { label: "Activity Logs", icon: ClipboardList, path: "/admin/activity-logs" },
-    ]},
-    { label: "Communication", items: [
-      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     ]},
     { items: [
       { label: "Notifications", icon: Bell, path: "/admin/notifications" },
@@ -102,9 +93,6 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "AI & Insights", items: [
       { label: "AI Conversations", icon: Bot, path: "/doctor/ai-conversations" },
-      { label: "Analytics", icon: PieChart, path: "/analytics" },
-      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
     ]},
     { items: [
       { label: "Notifications", icon: Bell, path: "/doctor/notifications" },
@@ -117,27 +105,15 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
       { label: "Dashboard", icon: LayoutDashboard, path: "/secretary/dashboard" },
     ]},
     { label: "Live Operations", items: [
-      { label: "Live Dashboard", icon: Radio, path: "/secretary/live-dashboard" },
       { label: "Active Conversations", icon: MessageSquare, path: "/secretary/active-conversations" },
       { label: "Live Chat", icon: MessageCircle, path: "/secretary/live-chat" },
-      { label: "Call Queue", icon: PhoneCall, path: "/secretary/call-queue" },
-      { label: "Emergency Queue", icon: AlertCircle, path: "/secretary/emergency-queue" },
     ]},
     { label: "Management", items: [
       { label: "Appointments", icon: CalendarClock, path: "/secretary/appointments" },
       { label: "Schedule Adjustments", icon: TimerReset, path: "/secretary/schedule-adjustments" },
       { label: "Follow-ups", icon: CalendarClock, path: "/secretary/followups" },
       { label: "Document Requests", icon: FolderOpen, path: "/secretary/document-requests" },
-      { label: "Patient Queue", icon: Users, path: "/secretary/patient-queue" },
-      { label: "Emergency Cases", icon: AlertTriangle, path: "/secretary/emergency-cases" },
       { label: "Calendar", icon: Calendar, path: "/secretary/calendar" },
-    ]},
-    { label: "AI & Insights", items: [
-      { label: "AI Monitoring", icon: Brain, path: "/secretary/ai-monitoring" },
-      { label: "Analytics", icon: PieChart, path: "/analytics" },
-      { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
-      { label: "AI Assistant", icon: MessageCircle, path: "/ai-assistant" },
-      { label: "Call History", icon: Phone, path: "/secretary/call-history" },
     ]},
     { items: [
       { label: "Notifications", icon: Bell, path: "/secretary/notifications" },
@@ -194,19 +170,16 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   patients: "Patients",
   availability: "Availability",
   "ai-conversations": "AI Conversations",
-  "ai-chat": "AI Chat",
+  ratings: "Doctor Ratings",
+  scenarios: "Conversation Scenarios",
   "ai-assistant": "AI Assistant",
   history: "History",
   chat: "Chat",
   "live-dashboard": "Live Dashboard",
   "active-conversations": "Active Conversations",
-  "call-queue": "Call Queue",
-  "emergency-queue": "Emergency Queue",
   appointments: "Appointments",
   "patient-queue": "Patient Queue",
   "emergency-cases": "Emergency Cases",
-  "ai-monitoring": "AI Monitoring",
-  "call-history": "Call History",
   documents: "Documents",
   conversations: "Conversations",
   "followups": "Follow-ups",
@@ -238,6 +211,8 @@ export function DashboardLayout() {
     if (path === "/ai-assistant") return location.pathname.startsWith("/ai-assistant");
     if (path === "/secretary/active-conversations")
       return location.pathname.startsWith("/secretary/active-conversations") || location.pathname.startsWith("/secretary/conversations");
+    if (path === "/doctor/ai-conversations")
+      return location.pathname === path || location.pathname.startsWith("/doctor/ai-conversations/");
     if (path === "/analytics") return location.pathname === "/analytics" || location.pathname.startsWith("/analytics/");
     if (path.startsWith("/secretary/") && path !== "/secretary/dashboard")
       return location.pathname === path || location.pathname.startsWith(path + "/");

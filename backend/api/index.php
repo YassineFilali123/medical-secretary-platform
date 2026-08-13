@@ -27,7 +27,12 @@ require_once __DIR__ . '/AvailabilityController.php';
 require_once __DIR__ . '/AppointmentController.php';
 require_once __DIR__ . '/AiChatController.php';
 require_once __DIR__ . '/DoctorPatientController.php';
+require_once __DIR__ . '/DoctorConversationController.php';
+require_once __DIR__ . '/AdminUserController.php';
+require_once __DIR__ . '/AdminAiController.php';
+require_once __DIR__ . '/AdminStatsController.php';
 require_once __DIR__ . '/Notifier.php';
+require_once __DIR__ . '/RealtimeNotifier.php';
 require_once __DIR__ . '/ScheduleAdjuster.php';
 require_once __DIR__ . '/ConsultationController.php';
 require_once __DIR__ . '/AdjustmentController.php';
@@ -80,6 +85,10 @@ $availability = new AvailabilityController();
 $appointments = new AppointmentController();
 $aiChat = new AiChatController();
 $doctorPatients = new DoctorPatientController();
+$doctorConversations = new DoctorConversationController();
+$adminUsers          = new AdminUserController();
+$adminAi             = new AdminAiController();
+$adminStats          = new AdminStatsController();
 $consultations  = new ConsultationController();
 $adjustments    = new AdjustmentController();
 $notifications  = new NotificationController();
@@ -217,6 +226,107 @@ try {
             $result = $doctorPatients->show($_GET);
             break;
 
+        // --- A doctor's read-only review of their patients' AI conversations.
+        // Only GET is registered: there is deliberately no way for a doctor to
+        // alter or remove a message.
+        case 'GET /api/doctor/conversations':
+            $result = $doctorConversations->index($_GET);
+            break;
+
+        case 'GET /api/doctor/conversations/get':
+            $result = $doctorConversations->show($_GET);
+            break;
+
+        // --- Administrator user management. Every handler re-checks
+        // ROLE_ADMIN server-side; none of these are reachable otherwise.
+        case 'GET /api/admin/users':
+            $result = $adminUsers->index($_GET);
+            break;
+
+        case 'GET /api/admin/users/get':
+            $result = $adminUsers->show($_GET);
+            break;
+
+        case 'GET /api/admin/roles':
+            $result = $adminUsers->roles($_GET);
+            break;
+
+        // --- Admin AI management: settings, FAQ, conversation scenarios.
+        // Every handler re-checks ROLE_ADMIN inside the controller.
+        // --- Admin statistics dashboard. Read-only, ROLE_ADMIN enforced
+        // inside the controller.
+        case 'GET /api/admin/statistics':
+            $result = $adminStats->index($_GET);
+            break;
+
+        case 'GET /api/admin/ai/settings':
+            $result = $adminAi->settings();
+            break;
+
+        case 'POST /api/admin/ai/settings':
+            $result = $adminAi->updateSettings($body);
+            break;
+
+        case 'GET /api/admin/ai/faqs':
+            $result = $adminAi->faqs($_GET);
+            break;
+
+        case 'POST /api/admin/ai/faqs/create':
+            $result = $adminAi->createFaq($body);
+            break;
+
+        case 'POST /api/admin/ai/faqs/update':
+            $result = $adminAi->updateFaq($body);
+            break;
+
+        case 'POST /api/admin/ai/faqs/toggle':
+            $result = $adminAi->toggleFaq($body);
+            break;
+
+        case 'POST /api/admin/ai/faqs/delete':
+            $result = $adminAi->deleteFaq($body);
+            break;
+
+        case 'GET /api/admin/ai/scenarios':
+            $result = $adminAi->scenarios($_GET);
+            break;
+
+        case 'POST /api/admin/ai/scenarios/create':
+            $result = $adminAi->createScenario($body);
+            break;
+
+        case 'POST /api/admin/ai/scenarios/update':
+            $result = $adminAi->updateScenario($body);
+            break;
+
+        case 'POST /api/admin/ai/scenarios/toggle':
+            $result = $adminAi->toggleScenario($body);
+            break;
+
+        case 'POST /api/admin/ai/scenarios/delete':
+            $result = $adminAi->deleteScenario($body);
+            break;
+
+        case 'POST /api/admin/users/create':
+            $result = $adminUsers->create($body);
+            break;
+
+        case 'POST /api/admin/users/update':
+            $result = $adminUsers->update($body);
+            break;
+
+        case 'POST /api/admin/users/role':
+            $result = $adminUsers->changeRole($body);
+            break;
+
+        case 'POST /api/admin/users/status':
+            $result = $adminUsers->changeStatus($body);
+            break;
+
+        case 'POST /api/admin/users/delete':
+            $result = $adminUsers->delete($body);
+            break;
+
         // --- Live consultation. The doctor drives all of these.
         case 'GET /api/consultations/active':
             $result = $consultations->active();
@@ -261,6 +371,12 @@ try {
 
         case 'GET /api/ratings/all':
             $result = $ratings->allRatings($_GET);
+            break;
+
+        // Admin ratings overview: every doctor with their aggregates.
+        // Guarded as ROLE_ADMIN inside the controller.
+        case 'GET /api/ratings/doctors/summary':
+            $result = $ratings->doctorsSummary($_GET);
             break;
 
         // --- Document requests. Patients request; secretaries process and upload.

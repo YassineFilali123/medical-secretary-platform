@@ -20,11 +20,18 @@ class LiveChatController
 
     private PDO      $db;
     private Notifier $notifier;
+    /**
+     * Pushes events to connected sockets AFTER a write has been committed.
+     * Purely additive: no validation, authorisation or locking below depends
+     * on it, and every call is best-effort.
+     */
+    private RealtimeNotifier $realtime;
 
     public function __construct()
     {
         $this->db       = Database::getConnection();
         $this->notifier = new Notifier($this->db);
+        $this->realtime = new RealtimeNotifier();
     }
 
     // =========================================================================
@@ -47,12 +54,21 @@ class LiveChatController
             ];
         }
 
-        $stmt = $this->db->prepare(
-            "INSERT INTO live_chat (patient_user_id, status, created_at)
-             VALUES (?, 'waiting', NOW())"
-        );
-        $stmt->execute([$patient['id']]);
-        $chatId = (int) $this->db->lastInsertId();
+        // If the patient was already talking to the AI assistant, that
+        // conversation IS this one — promote it in place rather than opening a
+        // second row, so the AI turns and the secretary turns stay in a single
+        // transcript. Only ever moves 'ai' → 'waiting', so the queue below and
+        // every other status check behave exactly as before.
+        $chatId = $this->promoteAiConversation($patient['id']);
+
+        if ($chatId === null) {
+            $stmt = $this->db->prepare(
+                "INSERT INTO live_chat (patient_user_id, status, created_at)
+                 VALUES (?, 'waiting', NOW())"
+            );
+            $stmt->execute([$patient['id']]);
+            $chatId = (int) $this->db->lastInsertId();
+        }
 
         // Notify every available secretary about the new waiting patient.
         $secretaryIds = $this->notifier->secretaryIds();
@@ -65,8 +81,13 @@ class LiveChatController
         ]);
 
         $row = $this->fetchChatById($chatId);
+        $shaped = $this->shapeChat($row);
 
-        return ['success' => true, 'chat' => $this->shapeChat($row)];
+        // Tells every secretary watching the queue that someone is waiting,
+        // which is what used to require a 5-second poll.
+        $this->realtime->waiting($chatId, $shaped);
+
+        return ['success' => true, 'chat' => $shaped];
     }
 
     // =========================================================================
@@ -126,20 +147,42 @@ class LiveChatController
             return $this->unauthorized();
         }
 
+        // Enriched with the last message and an unread count so the Active
+        // Conversations list can be drawn from this one call. The WHERE clause
+        // is unchanged: still only chats this secretary owns, still only
+        // 'active' ones.
         $stmt = $this->db->prepare(
-            "SELECT lc.*, u.name AS patient_name
+            "SELECT lc.*, u.name AS patient_name, s.name AS secretary_name,
+                    lm.content    AS last_message,
+                    lm.created_at AS last_message_at,
+                    lm.sender_role AS last_message_role,
+                    (SELECT COUNT(*)
+                       FROM live_chat_message m
+                      WHERE m.chat_id = lc.id
+                        AND m.sender_role = 'patient'
+                        AND m.id > COALESCE(lc.secretary_last_read_message_id, 0)
+                    ) AS unread_count
                FROM live_chat lc
                JOIN user u ON u.id = lc.patient_user_id
+               LEFT JOIN user s ON s.id = lc.secretary_user_id
+               LEFT JOIN live_chat_message lm
+                      ON lm.id = (SELECT MAX(m2.id) FROM live_chat_message m2 WHERE m2.chat_id = lc.id)
               WHERE lc.secretary_user_id = ?
                 AND lc.status = 'active'
               ORDER BY lc.accepted_at ASC"
         );
         $stmt->execute([$secretary['id']]);
 
-        return [
-            'success' => true,
-            'chats'   => array_map([$this, 'shapeChat'], $stmt->fetchAll()),
-        ];
+        $chats = array_map(function (array $row): array {
+            return array_merge($this->shapeChat($row), [
+                'lastMessage'     => $row['last_message'],
+                'lastMessageAt'   => $row['last_message_at'],
+                'lastMessageRole' => $row['last_message_role'],
+                'unreadCount'     => (int) $row['unread_count'],
+            ]);
+        }, $stmt->fetchAll());
+
+        return ['success' => true, 'chats' => $chats];
     }
 
     // =========================================================================
@@ -192,7 +235,14 @@ class LiveChatController
         $this->insertMessage($chatId, $secretary['id'], 'secretary',
             sprintf('Hello, I\'m %s. How can I help you today?', $secretary['name']));
 
-        return ['success' => true, 'chat' => $this->shapeChat($row)];
+        $shaped = $this->shapeChat($row);
+
+        // The atomic accept above is untouched: a secretary who lost the race
+        // returned 409 and never reaches this line, so only the owner ever
+        // publishes. This tells the patient who picked their conversation up.
+        $this->realtime->accepted($chatId, $shaped);
+
+        return ['success' => true, 'chat' => $shaped];
     }
 
     // =========================================================================
@@ -223,12 +273,18 @@ class LiveChatController
 
         $since = max(0, (int) ($query['since'] ?? 0));
 
+        // AI turns are excluded here on purpose. This endpoint feeds the patient
+        // and secretary live-chat panes, both of which place a message left or
+        // right purely on senderRole === 'patient' / 'secretary'; an unknown
+        // third role would be rendered as if the secretary had said it. The
+        // doctor's read-only view has its own endpoint and shows every role.
         $stmt = $this->db->prepare(
             "SELECT m.id, m.sender_user_id, m.sender_role, m.content, m.created_at,
                     u.name AS sender_name
                FROM live_chat_message m
                JOIN user u ON u.id = m.sender_user_id
               WHERE m.chat_id = ? AND m.id > ?
+                AND m.sender_role <> 'ai'
               ORDER BY m.id ASC"
         );
         $stmt->execute([$chatId, $since]);
@@ -242,6 +298,14 @@ class LiveChatController
                 'createdAt'  => $row['created_at'],
             ];
         }, $stmt->fetchAll());
+
+        // Reading a conversation marks it read — but only for the secretary who
+        // owns it. canAccessChat() above already refused anyone else, and the
+        // guard on secretary_user_id makes that explicit here too, so one
+        // secretary can never clear another's unread badge.
+        if (in_array('ROLE_SECRETARY', $caller['roles'], true)) {
+            $this->markRead($chatId, $caller['id']);
+        }
 
         return [
             'success'  => true,
@@ -306,16 +370,22 @@ class LiveChatController
             ]);
         }
 
-        return [
-            'success' => true,
-            'message' => [
-                'id'         => $msgId,
-                'senderRole' => $role,
-                'senderName' => $caller['name'],
-                'content'    => $content,
-                'createdAt'  => date('Y-m-d H:i:s'),
-            ],
+        $payload = [
+            'id'         => $msgId,
+            'senderRole' => $role,
+            'senderName' => $caller['name'],
+            'content'    => $content,
+            'createdAt'  => date('Y-m-d H:i:s'),
         ];
+
+        // Already committed above — this only pushes it to whoever is watching.
+        // Both directions use this one call: a patient message reaches the
+        // assigned secretary and vice versa, because the realtime server fans
+        // out to the conversation's subscribers, and only PHP decides who is
+        // allowed to be one.
+        $this->realtime->message($chatId, $payload);
+
+        return ['success' => true, 'message' => $payload];
     }
 
     // =========================================================================
@@ -362,6 +432,8 @@ class LiveChatController
             'relatedId'   => $chatId,
         ]);
 
+        $this->realtime->closed($chatId, $this->shapeChat($this->fetchChatById($chatId) ?? $chat));
+
         return ['success' => true, 'message' => 'Chat closed.'];
     }
 
@@ -393,6 +465,40 @@ class LiveChatController
         $row = $stmt->fetch();
 
         return $row !== false ? $row : null;
+    }
+
+    /**
+     * Turn this patient's open AI conversation into a waiting live chat.
+     *
+     * The UPDATE is guarded on status='ai' so it can only ever promote a
+     * conversation the secretary queue has never seen. Returns the promoted
+     * chat id, or null when the patient has no AI conversation to carry over.
+     */
+    private function promoteAiConversation(int $patientId): ?int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id FROM live_chat
+              WHERE patient_user_id = ? AND status = 'ai'
+              ORDER BY id DESC
+              LIMIT 1"
+        );
+        $stmt->execute([$patientId]);
+        $chatId = $stmt->fetchColumn();
+
+        if ($chatId === false) {
+            return null;
+        }
+
+        $promote = $this->db->prepare(
+            "UPDATE live_chat
+                SET status = 'waiting', created_at = NOW()
+              WHERE id = ? AND status = 'ai'"
+        );
+        $promote->execute([(int) $chatId]);
+
+        // Lost a race with another tab doing the same thing — let the caller
+        // fall back to a plain insert.
+        return $promote->rowCount() === 1 ? (int) $chatId : null;
     }
 
     private function fetchPatientOpenChat(int $patientId): ?array
@@ -427,6 +533,30 @@ class LiveChatController
             'acceptedAt'     => $row['accepted_at'],
             'closedAt'       => $row['closed_at'],
         ];
+    }
+
+    /**
+     * Advance this conversation's read high-water mark to its newest message.
+     *
+     * Guarded on secretary_user_id so it is a no-op for any secretary other
+     * than the assigned one — the read marker belongs to the owner of the
+     * conversation, not to whoever happened to issue the request.
+     *
+     * GREATEST() keeps the marker monotonic: polling with `since` set, or a
+     * request arriving out of order, must never move it backwards and
+     * resurrect messages the secretary has already seen.
+     */
+    private function markRead(int $chatId, int $secretaryId): void
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE live_chat lc
+                SET lc.secretary_last_read_message_id = GREATEST(
+                        COALESCE(lc.secretary_last_read_message_id, 0),
+                        COALESCE((SELECT MAX(m.id) FROM live_chat_message m WHERE m.chat_id = lc.id), 0)
+                    )
+              WHERE lc.id = ? AND lc.secretary_user_id = ?"
+        );
+        $stmt->execute([$chatId, $secretaryId]);
     }
 
     private function insertMessage(int $chatId, int $senderId, string $role, string $content): int

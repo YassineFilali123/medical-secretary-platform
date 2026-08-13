@@ -41,12 +41,26 @@ class AuthController
         $expiresAt      = date('Y-m-d H:i:s', time() + $this->config['code_expiry_minutes'] * 60);
 
         $roleInput = strtolower(trim($data['role'] ?? 'patient'));
+
+        // ROLE_ADMIN is deliberately absent from this map. Registration is a
+        // public, unauthenticated endpoint, so allowing it to mint an
+        // administrator would let anyone grant themselves the whole admin
+        // module by posting {"role":"admin"}. Administrators are created only
+        // by an existing administrator, through AdminUserController.
         $roleMap = [
             'doctor'    => 'ROLE_DOCTOR',
             'secretary' => 'ROLE_SECRETARY',
-            'admin'     => 'ROLE_ADMIN',
             'patient'   => 'ROLE_PATIENT',
         ];
+
+        if ($roleInput === 'admin') {
+            return [
+                'success' => false,
+                'error'   => 'Administrator accounts cannot be self-registered. Ask an existing administrator to create one for you.',
+                'status'  => 403,
+            ];
+        }
+
         $role = $roleMap[$roleInput] ?? 'ROLE_PATIENT';
         $rolesJson = json_encode([$role]);
 
@@ -183,6 +197,27 @@ class AuthController
                 'email'   => $email,
             ];
         }
+
+        // Deleted and deactivated accounts are refused here. Without this the
+        // admin module's "deactivate user" would have no effect at all: the
+        // status column was previously written but never read on this path.
+        // Checked after the password so the response cannot be used to probe
+        // which addresses correspond to suspended accounts.
+        if (($user['deleted_at'] ?? null) !== null) {
+            return ['success' => false, 'error' => 'Invalid email or password.'];
+        }
+        if (($user['status'] ?? 'active') !== 'active') {
+            return [
+                'success' => false,
+                'error'   => 'This account has been deactivated. Please contact an administrator.',
+                'status'  => 403,
+            ];
+        }
+
+        // The column already existed and was surfaced by ProfileController, but
+        // nothing ever wrote it, so every account showed "never logged in".
+        $touch = $this->db->prepare('UPDATE user SET last_login_at = NOW() WHERE id = ?');
+        $touch->execute([$user['id']]);
 
         return [
             'success' => true,

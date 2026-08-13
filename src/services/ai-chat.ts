@@ -18,6 +18,14 @@ export type AiChatAction =
 export type AiChatResponse = {
   message: string;
   nextAction: AiChatAction;
+  /**
+   * Options for the fallback menu — the built-in scenarios still active in
+   * ai_intent. Absent on older backends, in which case the UI shows all four.
+   */
+  fallbackOptions?: { action: string; label: string }[];
+  /** "faq" when the answer came from the clinic FAQ rather than the model. */
+  source?: string;
+  faqId?: number;
   // Booking flow
   doctors?: Doctor[];
   doctor?: Doctor;

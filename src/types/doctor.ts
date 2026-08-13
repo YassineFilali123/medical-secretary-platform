@@ -46,14 +46,17 @@ export type MedicalRecord = {
   notes: string;
 };
 
-export type AiConversation = {
-  id: string;
-  patientId: string;
-  patientName: string;
-  date: string;
-  summary: string;
-  messageCount: number;
-};
+/**
+ * Doctor-facing conversation status.
+ *
+ * "transferred" means a secretary took the conversation over; "active" means
+ * it is still with the AI assistant. The mapping from the stored live_chat
+ * status lives in DoctorConversationController.
+ *
+ * The conversation and message shapes themselves are defined next to the API
+ * that returns them, in @/services/doctor-conversations.
+ */
+export type AiConversationStatus = "active" | "closed" | "transferred" | "waiting";
 
 export type AvailabilitySlot = {
   dayOfWeek: number;

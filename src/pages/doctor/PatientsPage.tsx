@@ -1,43 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, ArrowRight, Calendar, Droplet, Loader2, Mail, Phone, Search, TriangleAlert, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDebounced } from "@/hooks/useDebounced";
-import { doctorPatientService, initials, type DoctorPatient } from "@/services/patients";
+import { initials } from "@/services/patients";
+import { useDoctorPatientsQuery } from "@/hooks/queries/useDoctorQueries";
 
 export default function PatientsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search, 300);
 
-  const [patients, setPatients] = useState<DoctorPatient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const {
+    data: patients = [],
+    isPending: loading,
+    error: queryError,
+    refetch,
+  } = useDoctorPatientsQuery(debouncedSearch);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    doctorPatientService
-      .list(debouncedSearch)
-      .then((data) => {
-        if (cancelled) return;
-        setPatients(data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Could not load your patients.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearch, reloadKey]);
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? "Could not load your patients."
+        : null;
 
   return (
     <div className="space-y-6">
@@ -53,7 +39,7 @@ export default function PatientsPage() {
           <span className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" /> {error}
           </span>
-          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setReloadKey((k) => k + 1)}>
+          <Button variant="outline" size="sm" className="rounded-lg" onClick={() => void refetch()}>
             Retry
           </Button>
         </div>

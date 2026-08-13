@@ -1,4 +1,7 @@
-export type DateRange = "today" | "7days" | "30days" | "month" | "custom";
+// "week" and "year" are used by the admin statistics dashboard, which offers
+// calendar periods rather than rolling windows. The existing analytics pages
+// keep their own option list and are unaffected.
+export type DateRange = "today" | "7days" | "30days" | "week" | "month" | "year" | "custom";
 
 export type DateFilter = {
   range: DateRange;

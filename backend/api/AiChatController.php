@@ -12,6 +12,29 @@ class AiChatController
 {
     private const MAX_MESSAGE_LENGTH = 2000;
 
+    /**
+     * How long a conversation stays "the same conversation". A patient who
+     * comes back the next morning is starting a new thread, not continuing
+     * yesterday's, and the doctor's list is far more readable when it is
+     * grouped that way.
+     */
+    private const SESSION_GAP_HOURS = 6;
+
+    /**
+     * Button presses arrive as a structured action with no text, so the
+     * transcript would otherwise show the assistant talking to itself. These
+     * stand in for what the patient actually clicked.
+     */
+    private const ACTION_LABELS = [
+        'start_booking'          => 'I\'d like to book an appointment.',
+        'select_doctor'          => 'I chose a doctor.',
+        'select_slot'            => 'I chose an appointment slot.',
+        'start_cancellation'     => 'I\'d like to cancel an appointment.',
+        'confirm_cancellation'   => 'I confirmed the cancellation.',
+        'start_document_request' => 'I need a medical document.',
+        'select_document_type'   => 'I chose a document type.',
+    ];
+
     private PDO $db;
     private AppointmentController $appointments;
     private AvailabilityController $availability;
@@ -34,6 +57,21 @@ class AiChatController
      * again immediately before creating the record.
      */
     public function reply(array $data): array
+    {
+        $result = $this->handle($data);
+
+        // Recorded after the fact so that the answer the patient sees is
+        // decided by exactly the same code as before history-keeping existed.
+        $this->recordTurn($data, $result);
+
+        return $result;
+    }
+
+    /**
+     * The original reply() body. Unchanged: every branch, validation and
+     * delegation below is what the patient assistant has always done.
+     */
+    private function handle(array $data): array
     {
         $patient = $this->patient();
         if ($patient === null) {
@@ -83,17 +121,42 @@ class AiChatController
             return ['success' => false, 'error' => 'Please enter a message of up to ' . self::MAX_MESSAGE_LENGTH . ' characters.'];
         }
 
+        // An administrator can switch off free-text understanding. The service
+        // flows below are NOT switched off with it — a patient must still be
+        // able to book, cancel, request a document and reach a secretary, so
+        // this drops straight to the menu of whatever is still enabled.
+        if (!$this->setting('assistant_enabled', true)) {
+            return $this->fallbackMenuResponse();
+        }
+
         $geminiReply = $this->askGemini($message);
 
         // Check document-request intent first — it is the most specific.
-        if ($this->isDocumentRequest($message, $geminiReply)) {
+        // Each flow is offered only while its scenario is active in ai_intent.
+        if ($this->scenarioActive('document_request') && $this->isDocumentRequest($message, $geminiReply)) {
             return $this->startDocumentRequest();
         }
-        if ($this->isCancellationRequest($message, $geminiReply)) {
+        if ($this->scenarioActive('cancel_appointment') && $this->isCancellationRequest($message, $geminiReply)) {
             return $this->startCancellation($patient);
         }
-        if ($this->isBookingRequest($message, $geminiReply)) {
+        if ($this->scenarioActive('book_appointment') && $this->isBookingRequest($message, $geminiReply)) {
             return $this->startBooking();
+        }
+
+        // No workflow matched. Consult the clinic's own FAQ before falling back
+        // on the model: a curated answer written by the clinic beats a generic
+        // one, and it costs nothing when it misses.
+        if ($this->setting('faq_enabled', true)) {
+            $faq = $this->matchFaq($message);
+            if ($faq !== null) {
+                return [
+                    'success'    => true,
+                    'message'    => $faq['answer'],
+                    'nextAction' => 'message',
+                    'source'     => 'faq',
+                    'faqId'      => $faq['id'],
+                ];
+            }
         }
 
         // If Gemini returned a useful general answer, show it.
@@ -426,6 +489,122 @@ class AiChatController
         ];
     }
 
+    // -------------------------------------------------------------------------
+    // Conversation history
+    //
+    // Stored in live_chat / live_chat_message — the same pair the secretary live
+    // chat uses — so that a conversation which later escalates keeps one single
+    // transcript instead of being split across two systems. The doctor's
+    // read-only view is built entirely from these rows.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Append this turn to the patient's current AI conversation.
+     *
+     * Deliberately silent on failure: history is a secondary concern, and a
+     * patient must never see the assistant break because a log write did not
+     * land.
+     */
+    private function recordTurn(array $data, array $result): void
+    {
+        // A rejected turn (bad input, expired slot) is not part of the
+        // conversation the doctor needs to read.
+        if (($result['success'] ?? false) !== true) {
+            return;
+        }
+
+        try {
+            $patient = $this->patient();
+            if ($patient === null) {
+                return;
+            }
+
+            $conversationId = $this->currentConversationId($patient['id']);
+
+            $utterance = $this->patientUtterance($data);
+            if ($utterance !== null) {
+                $this->logMessage($conversationId, $patient['id'], 'patient', $utterance);
+            }
+
+            $replyText = $result['message'] ?? null;
+            if (is_string($replyText) && trim($replyText) !== '') {
+                $this->logMessage($conversationId, $patient['id'], 'ai', trim($replyText));
+            }
+        } catch (Throwable $e) {
+            // Intentionally swallowed — see the docblock above.
+        }
+    }
+
+    /**
+     * The patient's open AI conversation, opening a new one when they have none
+     * or when the last one has gone cold.
+     *
+     * Only status='ai' rows are considered. Once a conversation has been handed
+     * to a secretary it is no longer the AI's to append to, so the next AI
+     * message correctly starts a fresh thread.
+     */
+    private function currentConversationId(int $patientId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT lc.id,
+                    GREATEST(lc.created_at, COALESCE(MAX(m.created_at), lc.created_at)) AS last_activity
+               FROM live_chat lc
+               LEFT JOIN live_chat_message m ON m.chat_id = lc.id
+              WHERE lc.patient_user_id = ?
+                AND lc.status = 'ai'
+              GROUP BY lc.id, lc.created_at
+              ORDER BY lc.id DESC
+              LIMIT 1"
+        );
+        $stmt->execute([$patientId]);
+        $row = $stmt->fetch();
+
+        if ($row !== false) {
+            $idleSeconds = time() - strtotime((string) $row['last_activity']);
+            if ($idleSeconds < self::SESSION_GAP_HOURS * 3600) {
+                return (int) $row['id'];
+            }
+
+            // Gone cold: retire it so the doctor sees a finished thread rather
+            // than one that appears to still be running.
+            $close = $this->db->prepare(
+                "UPDATE live_chat SET status = 'closed', closed_at = NOW() WHERE id = ? AND status = 'ai'"
+            );
+            $close->execute([(int) $row['id']]);
+        }
+
+        $insert = $this->db->prepare(
+            "INSERT INTO live_chat (patient_user_id, status, created_at) VALUES (?, 'ai', NOW())"
+        );
+        $insert->execute([$patientId]);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    private function logMessage(int $conversationId, int $patientId, string $role, string $content): void
+    {
+        $stmt = $this->db->prepare(
+            "INSERT INTO live_chat_message (chat_id, sender_user_id, sender_role, content, created_at)
+             VALUES (?, ?, ?, ?, NOW())"
+        );
+        // sender_user_id is the patient for both roles: the assistant has no
+        // user account, and sender_role is what identifies the speaker.
+        $stmt->execute([$conversationId, $patientId, $role, $content]);
+    }
+
+    /** What the patient said this turn — typed text, or the button they pressed. */
+    private function patientUtterance(array $data): ?string
+    {
+        $typed = $this->cleanMessage($data['message'] ?? null);
+        if ($typed !== null) {
+            return $typed;
+        }
+
+        $action = $data['action'] ?? null;
+
+        return is_string($action) ? (self::ACTION_LABELS[$action] ?? null) : null;
+    }
+
     /** @return array{id:int,roles:list<string>}|null */
     private function patient(): ?array
     {
@@ -588,13 +767,185 @@ class AiChatController
         return $this->stripIntentMarkers($reply);
     }
 
+    /**
+     * The "I didn't understand that" menu.
+     *
+     * Both the wording and the list of options are configuration now: the text
+     * comes from ai_setting.fallback_message, and the options are exactly the
+     * built-in scenarios still active in ai_intent. Defaults reproduce the
+     * previous hard-coded behaviour, so an untouched install is unchanged.
+     */
     private function fallbackMenuResponse(): array
     {
+        $options = [];
+        foreach (self::FALLBACK_OPTIONS as $scenario => $label) {
+            if ($this->scenarioActive($scenario)) {
+                $options[] = ['action' => $scenario, 'label' => $label];
+            }
+        }
+
         return [
-            'success'    => true,
-            'message'    => 'I can help you with the following services. Please select an option:',
-            'nextAction' => 'show_fallback_menu',
+            'success'         => true,
+            'message'         => $this->setting(
+                'fallback_message',
+                'Sorry, I couldn\'t understand your request. Please select one of the options below:'
+            ),
+            'nextAction'      => 'show_fallback_menu',
+            'fallbackOptions' => $options,
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Administrator configuration
+    //
+    // Read from ai_setting / ai_intent / faq — the tables the admin screens
+    // write. Every lookup falls back to the previous hard-coded behaviour, so a
+    // missing table or row degrades to exactly what the assistant did before.
+    // -------------------------------------------------------------------------
+
+    /** Built-in scenario name => the label shown on its fallback button. */
+    private const FALLBACK_OPTIONS = [
+        'book_appointment'   => 'Book an Appointment',
+        'cancel_appointment' => 'Cancel an Appointment',
+        'document_request'   => 'Request a Document',
+        'live_chat'          => 'Live Chat with Secretary',
+    ];
+
+    /** @var array<string,string>|null Loaded once per request. */
+    private ?array $settingsCache = null;
+
+    /** @var array<string,bool>|null */
+    private ?array $scenarioCache = null;
+
+    /** @return string|bool */
+    private function setting(string $key, $default)
+    {
+        if ($this->settingsCache === null) {
+            $this->settingsCache = [];
+            try {
+                foreach ($this->db->query('SELECT setting_key, setting_value FROM ai_setting')->fetchAll() as $row) {
+                    $this->settingsCache[$row['setting_key']] = $row['setting_value'];
+                }
+            } catch (Throwable $e) {
+                // Table not migrated yet — keep the built-in defaults.
+            }
+        }
+
+        if (!array_key_exists($key, $this->settingsCache)) {
+            return $default;
+        }
+
+        $value = $this->settingsCache[$key];
+
+        return is_bool($default) ? $value === '1' : $value;
+    }
+
+    /** True when a scenario is missing from ai_intent or explicitly active. */
+    private function scenarioActive(string $name): bool
+    {
+        if ($this->scenarioCache === null) {
+            $this->scenarioCache = [];
+            try {
+                foreach ($this->db->query('SELECT name, is_active FROM ai_intent')->fetchAll() as $row) {
+                    $this->scenarioCache[$row['name']] = (bool) $row['is_active'];
+                }
+            } catch (Throwable $e) {
+                // Table missing — treat everything as enabled.
+            }
+        }
+
+        // Unknown scenario means "not configured", which must not silently
+        // disable a working flow.
+        return $this->scenarioCache[$name] ?? true;
+    }
+
+    /**
+     * Find the active FAQ that best answers a free-text message.
+     *
+     * Two passes, cheapest first:
+     *   1. an ai_keyword row tied to a FAQ appearing verbatim in the message;
+     *   2. word overlap between the message and the FAQ question.
+     *
+     * The overlap pass ignores short words and requires at least two shared
+     * terms, so "how do I" alone can never match a question — that threshold is
+     * what keeps unrelated messages falling through to the model or the menu
+     * instead of getting a confidently wrong answer.
+     *
+     * @return array{id:int,answer:string}|null
+     */
+    private function matchFaq(string $message): ?array
+    {
+        $normalised = mb_strtolower($message);
+
+        try {
+            // Pass 1 — explicit keywords attached to a FAQ.
+            $stmt = $this->db->query(
+                "SELECT k.keyword, f.id, f.answer
+                   FROM ai_keyword k
+                   JOIN faq f ON f.id = k.faq_id
+                  WHERE f.is_active = 1
+                  ORDER BY CHAR_LENGTH(k.keyword) DESC"
+            );
+            foreach ($stmt->fetchAll() as $row) {
+                if (str_contains($normalised, mb_strtolower((string) $row['keyword']))) {
+                    return ['id' => (int) $row['id'], 'answer' => (string) $row['answer']];
+                }
+            }
+
+            // Pass 2 — word overlap with the question.
+            $rows = $this->db->query(
+                'SELECT id, question, answer FROM faq WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+            )->fetchAll();
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        $messageWords = $this->significantWords($normalised);
+        if ($messageWords === []) {
+            return null;
+        }
+
+        $best = null;
+        $bestScore = 0;
+
+        foreach ($rows as $row) {
+            $questionWords = $this->significantWords(mb_strtolower((string) $row['question']));
+            if ($questionWords === []) {
+                continue;
+            }
+
+            $shared = count(array_intersect($messageWords, $questionWords));
+            if ($shared < 2 || $shared <= $bestScore) {
+                continue;
+            }
+
+            $bestScore = $shared;
+            $best = ['id' => (int) $row['id'], 'answer' => (string) $row['answer']];
+        }
+
+        return $best;
+    }
+
+    /**
+     * Words worth matching on: 4+ characters and not a common filler.
+     *
+     * @return list<string>
+     */
+    private function significantWords(string $text): array
+    {
+        $stop = [
+            'what', 'when', 'where', 'which', 'that', 'this', 'with', 'have',
+            'does', 'your', 'from', 'about', 'they', 'them', 'will', 'would',
+            'could', 'should', 'there', 'their', 'here', 'need', 'want', 'please',
+        ];
+
+        $words = preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = array_filter(
+            $words,
+            static fn(string $w): bool => mb_strlen($w) >= 4 && !in_array($w, $stop, true)
+        );
+
+        return array_values(array_unique($words));
     }
 
     /** @deprecated Kept for backward compatibility only. */

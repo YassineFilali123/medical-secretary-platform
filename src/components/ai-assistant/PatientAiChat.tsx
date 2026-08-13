@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { aiChatService, AiChatError, type AiChatResponse } from "@/services/ai-chat";
 import { liveChatService, type LiveChatMessage } from "@/services/live-chat";
+import { useLiveChatSocket } from "@/hooks/useLiveChatSocket";
+import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 import { API_BASE_URL, authHeader } from "@/lib/api-config";
 import type { Appointment, Doctor } from "@/types/appointment";
 import type { ChatMessage } from "@/types/patient";
@@ -154,19 +156,83 @@ function LiveChatBubble({ msg }: { msg: LiveChatMessage }) {
  * Fallback service-menu bubble — shown when the AI can't handle a message.
  * Clicking a button triggers the appropriate existing flow or starts live chat.
  */
+/** Scenario name → how its fallback button looks. */
+const FALLBACK_BUTTONS = {
+  book_appointment: {
+    icon: CalendarPlus,
+    label: "Book an Appointment",
+    className:
+      "border-primary/30 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10",
+  },
+  cancel_appointment: {
+    icon: CalendarX2,
+    label: "Cancel an Appointment",
+    className:
+      "border-rose-300/50 bg-rose-50/60 text-rose-600 hover:border-rose-400/70 hover:bg-rose-100/70 dark:border-rose-700/40 dark:bg-rose-950/30 dark:text-rose-400",
+  },
+  document_request: {
+    icon: FileText,
+    label: "Request a Document",
+    className:
+      "border-violet-300/50 bg-violet-50/60 text-violet-600 hover:border-violet-400/70 hover:bg-violet-100/70 dark:border-violet-700/40 dark:bg-violet-950/30 dark:text-violet-400",
+  },
+  live_chat: {
+    icon: MessageCircle,
+    label: "Live Chat with Secretary",
+    className:
+      "border-teal-300/50 bg-teal-50/60 text-teal-600 hover:border-teal-400/70 hover:bg-teal-100/70 dark:border-teal-700/40 dark:bg-teal-950/30 dark:text-teal-400",
+  },
+} as const;
+
+type FallbackAction = keyof typeof FALLBACK_BUTTONS;
+
+/** Order used when the server does not say which options are available. */
+const DEFAULT_FALLBACK_ACTIONS: FallbackAction[] = [
+  "book_appointment",
+  "cancel_appointment",
+  "document_request",
+  "live_chat",
+];
+
+/**
+ * The "I didn't understand" menu.
+ *
+ * Both the wording and which buttons appear come from the server, so an
+ * administrator changing the fallback message or deactivating a scenario is
+ * reflected here. The defaults reproduce the previous fixed menu, so an older
+ * backend that sends neither still renders exactly as before.
+ */
 function FallbackMenuBubble({
   onBook,
   onCancel,
   onDocument,
   onLiveChat,
   disabled,
+  message,
+  options,
 }: {
   onBook: () => void;
   onCancel: () => void;
   onDocument: () => void;
   onLiveChat: () => void;
   disabled: boolean;
+  message?: string;
+  options?: { action: string; label: string }[];
 }) {
+  const handlers: Record<FallbackAction, () => void> = {
+    book_appointment: onBook,
+    cancel_appointment: onCancel,
+    document_request: onDocument,
+    live_chat: onLiveChat,
+  };
+
+  const actions: FallbackAction[] =
+    options && options.length > 0
+      ? options
+          .map((o) => o.action)
+          .filter((a): a is FallbackAction => a in FALLBACK_BUTTONS)
+      : DEFAULT_FALLBACK_ACTIONS;
+
   return (
     <div className="flex justify-start">
       <div className="flex max-w-[90%] items-start gap-2">
@@ -175,41 +241,26 @@ function FallbackMenuBubble({
         </div>
         <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-3 text-sm">
           <p className="mb-3 leading-relaxed text-foreground">
-            I can help you with the following services. Please select an option:
+            {message ?? "Sorry, I couldn't understand your request. Please select one of the options below:"}
           </p>
           <div className="flex flex-col gap-2">
-            <button
-              onClick={onBook}
-              disabled={disabled}
-              className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-all hover:border-primary/60 hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <CalendarPlus className="h-4 w-4 shrink-0" />
-              Book an Appointment
-            </button>
-            <button
-              onClick={onCancel}
-              disabled={disabled}
-              className="flex items-center gap-2 rounded-xl border border-rose-300/50 bg-rose-50/60 px-4 py-2.5 text-sm font-medium text-rose-600 transition-all hover:border-rose-400/70 hover:bg-rose-100/70 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-700/40 dark:bg-rose-950/30 dark:text-rose-400"
-            >
-              <CalendarX2 className="h-4 w-4 shrink-0" />
-              Cancel an Appointment
-            </button>
-            <button
-              onClick={onDocument}
-              disabled={disabled}
-              className="flex items-center gap-2 rounded-xl border border-violet-300/50 bg-violet-50/60 px-4 py-2.5 text-sm font-medium text-violet-600 transition-all hover:border-violet-400/70 hover:bg-violet-100/70 disabled:pointer-events-none disabled:opacity-50 dark:border-violet-700/40 dark:bg-violet-950/30 dark:text-violet-400"
-            >
-              <FileText className="h-4 w-4 shrink-0" />
-              Request a Document
-            </button>
-            <button
-              onClick={onLiveChat}
-              disabled={disabled}
-              className="flex items-center gap-2 rounded-xl border border-teal-300/50 bg-teal-50/60 px-4 py-2.5 text-sm font-medium text-teal-600 transition-all hover:border-teal-400/70 hover:bg-teal-100/70 disabled:pointer-events-none disabled:opacity-50 dark:border-teal-700/40 dark:bg-teal-950/30 dark:text-teal-400"
-            >
-              <MessageCircle className="h-4 w-4 shrink-0" />
-              Live Chat with Secretary
-            </button>
+            {actions.map((action) => {
+              const cfg = FALLBACK_BUTTONS[action];
+              const Icon = cfg.icon;
+              const label = options?.find((o) => o.action === action)?.label ?? cfg.label;
+
+              return (
+                <button
+                  key={action}
+                  onClick={handlers[action]}
+                  disabled={disabled}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 ${cfg.className}`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -644,6 +695,11 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
    * Shown as a special bot bubble with four action buttons.
    */
   const [showFallbackMenu, setShowFallbackMenu] = useState(false);
+  /** Wording and options for the fallback menu, as supplied by the server. */
+  const [fallbackData, setFallbackData] = useState<{
+    message: string;
+    options?: { action: string; label: string }[];
+  } | null>(null);
 
   /**
    * Live-chat state machine. null = AI mode; "starting/waiting/active/closed" = live-chat mode.
@@ -667,52 +723,63 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
   }, [messages, isTyping, booking, slotTakenState, cancellation, pendingCancelAppt, docFlow, liveChatMessages, liveChat]);
 
   // -------------------------------------------------------------------------
-  // Live-chat polling
+  // Live chat realtime
+  //
+  // The 3-second poll is gone. Messages and status changes arrive over the
+  // WebSocket; the transcript is still loaded over HTTP when the chat opens.
   // -------------------------------------------------------------------------
 
-  const pollLiveChat = useCallback(async () => {
-    if (liveChat === null || liveChat.phase === "closed" || liveChat.phase === "starting") return;
+  /** The conversation to watch, or null when not in live chat. */
+  const liveChatId =
+    liveChat && liveChat.phase !== "closed" && liveChat.phase !== "starting"
+      ? (liveChat as { chatId: number }).chatId
+      : null;
 
-    try {
-      const chatId = (liveChat as { phase: string; chatId: number }).chatId;
-      const res = await liveChatService.poll(chatId, lastLiveMsgIdRef.current);
+  const handleLiveMessage = useCallback((message: LiveChatMessage) => {
+    setLiveChatMessages((prev) => {
+      // The patient's own message was appended optimistically on send, and a
+      // reconnect can redeliver — so never add the same id twice.
+      if (prev.some((m) => m.id === message.id)) return prev;
+      lastLiveMsgIdRef.current = Math.max(lastLiveMsgIdRef.current, message.id);
+      return [...prev, message];
+    });
+  }, []);
 
-      // Append new messages
-      if (res.messages.length > 0) {
-        setLiveChatMessages((prev) => [...prev, ...res.messages]);
-        lastLiveMsgIdRef.current = res.messages[res.messages.length - 1]!.id;
-      }
-
-      // State transitions
-      if (liveChat.phase === "waiting" && res.chat.status === "active") {
-        setLiveChat({
-          phase: "active",
-          chatId: res.chat.id,
-          secretaryName: res.chat.secretaryName ?? "Secretary",
+  const handleLiveChatEvent = useCallback(
+    (event: "accepted" | "closed") => {
+      if (event === "accepted") {
+        // Load the chat so the secretary's name is shown accurately, rather
+        // than guessing it from the event payload.
+        void liveChatService.myChat().then((chat) => {
+          if (!chat) return;
+          setLiveChat({
+            phase: "active",
+            chatId: chat.id,
+            secretaryName: chat.secretaryName ?? "Secretary",
+          });
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `lc_joined_${Date.now()}`,
+              role: "assistant",
+              content: `${chat.secretaryName ?? "A secretary"} has joined the conversation.`,
+              timestamp: nowTime(),
+            },
+          ]);
         });
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `lc_joined_${Date.now()}`,
-            role: "assistant",
-            content: `${res.chat.secretaryName ?? "A secretary"} has joined the conversation.`,
-            timestamp: nowTime(),
-          },
-        ]);
-      } else if ((liveChat.phase === "active" || liveChat.phase === "waiting") && res.chat.status === "closed") {
-        setLiveChat({ phase: "closed" });
+        return;
       }
-    } catch {
-      // Silently ignore poll errors (network blip etc.)
-    }
-  }, [liveChat]);
 
-  // Poll every 3 s while in waiting or active state.
-  useEffect(() => {
-    if (liveChat === null || liveChat.phase === "closed" || liveChat.phase === "starting") return;
-    const interval = setInterval(pollLiveChat, 3000);
-    return () => clearInterval(interval);
-  }, [liveChat, pollLiveChat]);
+      setLiveChat({ phase: "closed" });
+    },
+    [],
+  );
+
+  const { status: liveSocketStatus } = useLiveChatSocket(
+    liveChatId,
+    handleLiveMessage,
+    handleLiveChatEvent,
+  );
 
   // -------------------------------------------------------------------------
   // Core send helpers (AI mode)
@@ -720,16 +787,13 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
 
   const appendAssistant = (response: AiChatResponse) => {
     // Handle fallback menu — show the special bubble instead of plain text.
+    // The bubble renders the server's message itself, so appending it here as
+    // well would print the same sentence twice.
     if (response.nextAction === "show_fallback_menu") {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `m${Date.now()}_assistant`,
-          role: "assistant",
-          content: response.message,
-          timestamp: nowTime(),
-        },
-      ]);
+      setFallbackData({
+        message: response.message,
+        options: response.fallbackOptions,
+      });
       setShowFallbackMenu(true);
       setBooking(null);
       setCancellation(null);
@@ -1128,6 +1192,8 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
               onDocument={handleDocumentButton}
               onLiveChat={handleStartLiveChat}
               disabled={isTyping}
+              message={fallbackData?.message}
+              options={fallbackData?.options}
             />
           )}
 
@@ -1383,11 +1449,14 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
           {/* Live-chat input (active state) */}
           {liveChat?.phase === "active" && (
             <>
-              <div className="mb-2 flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-1.5 dark:bg-teal-950/30">
-                <MessageCircle className="h-3.5 w-3.5 text-teal-500" />
-                <span className="text-xs font-medium text-teal-700 dark:text-teal-400">
-                  Live chat with {liveChat.secretaryName}
+              <div className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-teal-50 px-3 py-1.5 dark:bg-teal-950/30">
+                <span className="flex items-center gap-2">
+                  <MessageCircle className="h-3.5 w-3.5 text-teal-500" />
+                  <span className="text-xs font-medium text-teal-700 dark:text-teal-400">
+                    Live chat with {liveChat.secretaryName}
+                  </span>
                 </span>
+                <ConnectionStatus status={liveSocketStatus} />
               </div>
               <div className="flex items-center gap-2">
                 <Input

@@ -1,26 +1,39 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { secretaryService } from "@/services/secretary";
+import { useMemo, useState } from "react";
+import { AlertCircle, ChevronLeft, ChevronRight, Clock, Loader2 } from "lucide-react";
 import { addDays, startOfWeek, format, isSameDay } from "date-fns";
+import { useAppointments } from "@/hooks/useAppointments";
 
 const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  confirmed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-  completed: "bg-gray-100 text-gray-600",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  confirmed: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  completed: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  rejected: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
 export default function SecretaryCalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
 
-  const appointments = secretaryService.getAppointments();
+  // Real clinic appointments for the displayed week. Refetches when the week
+  // changes because the query object changes with it.
+  const { appointments, loading, error } = useAppointments({
+    from: format(weekStart, "yyyy-MM-dd"),
+    to: format(addDays(weekStart, 6), "yyyy-MM-dd"),
+    limit: 500,
+  });
 
   const getAppointmentsForDay = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    return appointments.filter((a) => a.date === dateStr);
+    return appointments
+      .filter((a) => a.date === dateStr)
+      .sort((a, b) => a.time.localeCompare(b.time));
   };
+
 
   return (
     <div className="space-y-6">
@@ -38,6 +51,18 @@ export default function SecretaryCalendarPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" /> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-6 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-7">
         {weekDays.map((day) => {
