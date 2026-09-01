@@ -18,19 +18,44 @@ function isPortOpen(port, path = "/api/specialties") {
   });
 }
 
+async function tryStartPhp(backendDir) {
+  const possiblePaths = ["php", "C:\\xampp\\php\\php.exe", "C:\\php\\php.exe", "C:\\tools\\php\\php.exe"];
+  
+  for (const phpExecutable of possiblePaths) {
+    try {
+      const phpProcess = spawn(phpExecutable, ["-S", "localhost:8080", "router.php"], {
+        cwd: backendDir,
+        stdio: "inherit",
+      });
+      
+      let spawnFailed = false;
+      await new Promise((resolve) => {
+        phpProcess.on("error", () => {
+          spawnFailed = true;
+          resolve();
+        });
+        setTimeout(() => resolve(), 500);
+      });
+
+      if (!spawnFailed) {
+        console.log(`PHP Backend Server successfully launched on http://localhost:8080 using (${phpExecutable})`);
+        return true;
+      }
+    } catch {
+      // Try next path
+    }
+  }
+  
+  console.log("\x1b[33m%s\x1b[0m", "[Notice] PHP binary not found or failed to start. Running Frontend with Mock API Interceptor fallback enabled!");
+  return false;
+}
+
 async function main() {
   const backendRunning = await isPortOpen(8080);
   if (!backendRunning) {
-    console.log("Starting PHP Backend Server on http://localhost:8080...");
-    const phpPath = "C:\\xampp\\php\\php.exe";
+    console.log("Checking PHP Backend Server on http://localhost:8080...");
     const backendDir = path.join(__dirname, "backend");
-    const phpProcess = spawn(phpPath, ["-S", "localhost:8080", "router.php"], {
-      cwd: backendDir,
-      stdio: "inherit",
-    });
-    phpProcess.on("error", (err) => {
-      console.error("Failed to start PHP backend:", err);
-    });
+    await tryStartPhp(backendDir);
   } else {
     console.log("PHP Backend Server is already running on http://localhost:8080");
   }
