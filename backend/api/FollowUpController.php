@@ -42,8 +42,10 @@ class FollowUpController
         $doctorId = $this->currentUserId(['ROLE_DOCTOR']);
         if (is_array($doctorId)) return $doctorId;
 
+        // A non-positive id is a caller bug, not a missing row — say so, rather
+        // than letting `WHERE a.id = 0` fall through to "Appointment not found".
         $appointmentId = $this->intParam($data, 'appointmentId');
-        if ($appointmentId === null) {
+        if ($appointmentId === null || $appointmentId <= 0) {
             return ['success' => false, 'error' => 'A valid appointment ID is required.'];
         }
 

@@ -246,7 +246,21 @@ class ProfileController
             return null;
         }
 
-        return (int) $m[1];
+        $userId = (int) $m[1];
+
+        // The pattern matching above proves only that the header is well
+        // formed. Without this check a token naming a user who does not exist
+        // (or has been deleted) got past authentication and failed later as a
+        // 400 "Profile not found" — an authentication failure reported as a
+        // request error, and a way to tell "no such user" apart from "not
+        // signed in". Every other controller verifies the row; this one now
+        // does too.
+        $stmt = $this->db->prepare(
+            'SELECT id FROM `user` WHERE id = ? AND deleted_at IS NULL'
+        );
+        $stmt->execute([$userId]);
+
+        return $stmt->fetchColumn() === false ? null : $userId;
     }
 
     /** @param list<string> $columns @param list<mixed> $values */

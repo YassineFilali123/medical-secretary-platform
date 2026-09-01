@@ -129,6 +129,28 @@ class AiChatController
             return $this->fallbackMenuResponse();
         }
 
+        // Look the clinic's own FAQ up once, here, and reuse it in both places
+        // below. It is only a couple of indexed reads, and doing it before
+        // Gemini means a curated answer costs no API call at all.
+        $faq = $this->setting('faq_enabled', true) ? $this->matchFaq($message) : null;
+
+        // A curated answer outranks the workflow shortcuts when the patient is
+        // asking HOW something works rather than asking us to do it:
+        //
+        //   "How can I cancel my appointment?"  -> the clinic's written answer
+        //   "Cancel my appointment"             -> the cancellation screen
+        //
+        // Without this the workflow detection below swallowed every how-to
+        // question whose wording overlapped a flow ("cancel ... appointment"),
+        // so an answer written in the FAQ Library could never be reached.
+        //
+        // Taken only when a FAQ actually matched, so a question the clinic has
+        // not written an answer for still falls through to the detection below
+        // exactly as before.
+        if ($faq !== null && $this->isInformationalQuestion($message)) {
+            return $this->faqResponse($faq);
+        }
+
         $geminiReply = $this->askGemini($message);
 
         // Check document-request intent first — it is the most specific.
@@ -146,17 +168,8 @@ class AiChatController
         // No workflow matched. Consult the clinic's own FAQ before falling back
         // on the model: a curated answer written by the clinic beats a generic
         // one, and it costs nothing when it misses.
-        if ($this->setting('faq_enabled', true)) {
-            $faq = $this->matchFaq($message);
-            if ($faq !== null) {
-                return [
-                    'success'    => true,
-                    'message'    => $faq['answer'],
-                    'nextAction' => 'message',
-                    'source'     => 'faq',
-                    'faqId'      => $faq['id'],
-                ];
-            }
+        if ($faq !== null) {
+            return $this->faqResponse($faq);
         }
 
         // If Gemini returned a useful general answer, show it.
@@ -857,6 +870,39 @@ class AiChatController
         // Unknown scenario means "not configured", which must not silently
         // disable a working flow.
         return $this->scenarioCache[$name] ?? true;
+    }
+
+    /** The reply shape for a FAQ hit, used from both places that can return one. */
+    private function faqResponse(array $faq): array
+    {
+        return [
+            'success'    => true,
+            'message'    => $faq['answer'],
+            'nextAction' => 'message',
+            'source'     => 'faq',
+            'faqId'      => $faq['id'],
+        ];
+    }
+
+    /**
+     * True when the patient is asking how something works rather than telling
+     * us to do it.
+     *
+     * Deliberately narrow: it keys off the opening words only, so "Cancel my
+     * appointment", "I want to cancel my appointment" and "I need to cancel"
+     * all remain commands and still open the cancellation screen. Only openings
+     * that can only be a question ("how...", "what...", "can i...") divert to
+     * the clinic's written answer.
+     */
+    private function isInformationalQuestion(string $message): bool
+    {
+        // Strip quotes/brackets a patient may have pasted around the question.
+        $normalised = ltrim(mb_strtolower(trim($message)), "\"'([{ \t");
+
+        return (bool) preg_match(
+            '/^(how|what|what\'?s|where|when|why|who|which|can i|could i|do i|does|is it|is there|are there|am i)\b/',
+            $normalised
+        );
     }
 
     /**

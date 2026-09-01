@@ -48,6 +48,18 @@ export default function LiveConsultationPage() {
   const [extendOpen, setExtendOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [followUpOpen, setFollowUpOpen] = useState(false);
+  /**
+   * The consultation the follow-up step refers to.
+   *
+   * Captured when the consultation ends, NOT read from `consultation`: ending
+   * it is exactly what makes /consultation/active return null, so by the time
+   * the doctor confirms a follow-up the live object is gone and the id would
+   * fall back to 0 — which the backend rejects with "Appointment not found".
+   */
+  const [finishedConsultation, setFinishedConsultation] = useState<{
+    appointmentId: number;
+    patientName: string;
+  } | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<{ message: string; affected: AffectedAppointment[] } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>("patient");
@@ -90,9 +102,12 @@ export default function LiveConsultationPage() {
 
   const handleEndWithReport = async (report: ConsultationReport): Promise<boolean> => {
     if (!consultation) return false;
+    // Read both off the live object BEFORE ending, while it still exists.
+    const { appointmentId, patientName } = consultation;
     setReportError(null);
     try {
-      await consultationService.endWithReport(consultation.appointmentId, report);
+      await consultationService.endWithReport(appointmentId, report);
+      setFinishedConsultation({ appointmentId, patientName });
       setReportOpen(false);
       setFollowUpOpen(true);
       return true;
@@ -492,11 +507,12 @@ export default function LiveConsultationPage() {
       />
 
       <FollowUpModal
-        open={followUpOpen}
-        appointmentId={consultation?.appointmentId ?? 0}
-        patientName={consultation?.patientName ?? ""}
+        open={followUpOpen && finishedConsultation !== null}
+        appointmentId={finishedConsultation?.appointmentId ?? 0}
+        patientName={finishedConsultation?.patientName ?? ""}
         onClose={() => {
           setFollowUpOpen(false);
+          setFinishedConsultation(null);
           reload();
         }}
       />

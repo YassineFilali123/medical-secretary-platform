@@ -1131,6 +1131,16 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
   // Whether the normal AI text input is available.
   const inLiveChatMode = liveChat !== null && liveChat.phase !== "starting";
 
+  /**
+   * Reaching a secretary must never depend on the assistant failing to
+   * understand. The fallback menu only appears when Gemini gives up, so on its
+   * own it left a patient with a well-answered question no way through. This
+   * offers live chat at all times, except while a live chat is already
+   * starting, waiting or running (the closed state has its own "Return to AI
+   * Assistant" button, after which this reappears).
+   */
+  const showLiveChatEntry = liveChat === null;
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
@@ -1499,6 +1509,19 @@ export function PatientAiChat({ compact = false }: PatientAiChatProps) {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Connecting…</span>
             </div>
+          )}
+
+          {/* Always-available route to a secretary — never gated on what the
+              assistant did or did not understand. */}
+          {showLiveChatEntry && (
+            <button
+              onClick={handleStartLiveChat}
+              disabled={isTyping}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-teal-300/50 bg-teal-50/60 px-4 py-2.5 text-sm font-medium text-teal-600 transition-colors hover:border-teal-400/70 hover:bg-teal-100/70 disabled:opacity-50 dark:border-teal-700/40 dark:bg-teal-950/30 dark:text-teal-400 dark:hover:bg-teal-900/40"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Live Chat with Secretary
+            </button>
           )}
 
           {/* Normal AI input */}
