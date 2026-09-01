@@ -1,4 +1,9 @@
-import type { User, LoginCredentials, UserRole } from "@/types/auth";
+import type {
+  User,
+  LoginCredentials,
+  UserRole,
+  VerificationError,
+} from "@/types/auth";
 import { API_BASE_URL } from "@/lib/api-config";
 
 const API_URL = API_BASE_URL;
@@ -29,9 +34,11 @@ export const authService = {
     if (!data.success) {
       if (data.needsVerification) {
         localStorage.setItem(VERIFY_EMAIL_KEY, data.email);
-        const error = new Error(data.error || "Please verify your email");
-        (error as any).needsVerification = true;
-        (error as any).email = data.email;
+        const error: VerificationError = new Error(
+          data.error || "Please verify your email",
+        );
+        error.needsVerification = true;
+        error.email = data.email;
         throw error;
       }
       throw new Error(data.error || "Login failed");

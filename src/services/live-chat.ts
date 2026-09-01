@@ -4,6 +4,12 @@ import { API_BASE_URL, authHeader } from "@/lib/api-config";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * An error carrying the HTTP status and the backend's `code`, so callers can
+ * tell a lost race (409) from a genuine failure.
+ */
+export type ApiError = Error & { status?: number; code?: string | null };
+
 export type LiveChatStatus = "waiting" | "active" | "closed";
 
 export type LiveChat = {
@@ -69,9 +75,11 @@ async function request<T = Record<string, unknown>>(
   }
 
   if (!data.success) {
-    const err = new Error((data.error as string) || `Request failed (HTTP ${response.status}).`);
-    (err as any).status = response.status;
-    (err as any).code = (data.code as string) ?? null;
+    const err: ApiError = new Error(
+      (data.error as string) || `Request failed (HTTP ${response.status}).`,
+    );
+    err.status = response.status;
+    err.code = (data.code as string) ?? null;
     throw err;
   }
 

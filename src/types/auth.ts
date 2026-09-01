@@ -18,3 +18,12 @@ export type AuthState = {
   token: string | null;
   isAuthenticated: boolean;
 };
+
+/**
+ * Login rejects with this when the account exists but is unverified, so the
+ * caller can route to the verification screen instead of showing an error.
+ */
+export type VerificationError = Error & {
+  needsVerification?: boolean;
+  email?: string;
+};

@@ -1,7 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import type { User, LoginCredentials, UserRole } from "@/types/auth";
+import type {
+  User,
+  LoginCredentials,
+  UserRole,
+  VerificationError,
+} from "@/types/auth";
 import { authService } from "@/services/auth";
 import { ROUTES } from "@/constants/routes";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -78,8 +83,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const result = await loginToApi(credentials);
         setUser(result.user);
         navigate(result.dashboardPath, { replace: true });
-      } catch (err: any) {
-        if (err.needsVerification) {
+      } catch (err) {
+        if ((err as VerificationError).needsVerification) {
           navigate(ROUTES.VERIFY_EMAIL, { replace: true });
         }
         throw err;
@@ -162,9 +167,11 @@ async function loginToApi(credentials: LoginCredentials) {
   if (!data.success) {
     if (data.needsVerification) {
       localStorage.setItem("verify_email", data.email);
-      const error = new Error(data.error || "Please verify your email");
-      (error as any).needsVerification = true;
-      (error as any).email = data.email;
+      const error: VerificationError = new Error(
+        data.error || "Please verify your email",
+      );
+      error.needsVerification = true;
+      error.email = data.email;
       throw error;
     }
     throw new Error(data.error || "Login failed");
@@ -174,7 +181,8 @@ async function loginToApi(credentials: LoginCredentials) {
     id: String(data.user.id),
     email: data.user.email,
     name: data.user.name,
-    role: (data.user.roles?.[0]?.replace("ROLE_", "").toLowerCase() || "patient") as any,
+    role: (data.user.roles?.[0]?.replace("ROLE_", "").toLowerCase() ||
+      "patient") as User["role"],
   };
   const token = `token_${user.id}`;
 

@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   liveChatService,
+  type ApiError,
   type LiveChat,
   type LiveChatMessage,
 } from "@/services/live-chat";
@@ -359,8 +360,9 @@ export default function PatientLiveChatPage() {
       await Promise.all([fetchWaiting(), fetchActive()]);
       // Open the chat straight away.
       await openChat(chatId);
-    } catch (err: any) {
-      const status = err?.status ?? 0;
+    } catch (err) {
+      const failure = err as ApiError;
+      const status = failure?.status ?? 0;
       if (status === 409) {
         setToast({
           message: "This chat was already accepted by another secretary.",
@@ -369,7 +371,7 @@ export default function PatientLiveChatPage() {
         // Remove from local waiting list so the card disappears.
         setWaitingChats((prev) => prev.filter((c) => c.id !== chatId));
       } else {
-        setToast({ message: err?.message ?? "Could not accept chat.", type: "error" });
+        setToast({ message: failure?.message ?? "Could not accept chat.", type: "error" });
       }
     } finally {
       setAcceptingId(null);
@@ -405,8 +407,11 @@ export default function PatientLiveChatPage() {
       setMessages([]);
       lastMsgIdRef.current = 0;
       await fetchActive();
-    } catch (err: any) {
-      setToast({ message: err?.message ?? "Could not close chat.", type: "error" });
+    } catch (err) {
+      setToast({
+        message: (err as Error)?.message ?? "Could not close chat.",
+        type: "error",
+      });
     } finally {
       setIsClosing(false);
     }
