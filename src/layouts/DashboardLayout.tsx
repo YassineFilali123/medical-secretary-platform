@@ -26,7 +26,6 @@ import {
   Users,
   UserCircle,
   X,
-  PieChart,
   Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,7 +70,6 @@ const ROLE_NAV_GROUPS: Record<UserRole, NavGroup[]> = {
     ]},
     { label: "Insights", items: [
       { label: "Statistics", icon: BarChart3, path: "/admin/statistics" },
-      { label: "Analytics", icon: PieChart, path: "/analytics" },
     ]},
     { items: [
       { label: "Notifications", icon: Bell, path: "/admin/notifications" },
@@ -159,8 +157,6 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "ai-config": "AI Configuration",
   faqs: "FAQ Library",
   statistics: "Statistics",
-  analytics: "Analytics",
-  "activity-logs": "Activity Logs",
   settings: "Settings",
   profile: "Profile",
   notifications: "Notifications",
@@ -172,7 +168,6 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "ai-conversations": "AI Conversations",
   ratings: "Doctor Ratings",
   scenarios: "Conversation Scenarios",
-  "ai-assistant": "AI Assistant",
   history: "History",
   chat: "Chat",
   "live-dashboard": "Live Dashboard",
@@ -208,12 +203,10 @@ export function DashboardLayout() {
   const breadcrumbs = getBreadcrumbs(location.pathname);
 
   function isItemActive(path: string): boolean {
-    if (path === "/ai-assistant") return location.pathname.startsWith("/ai-assistant");
     if (path === "/secretary/active-conversations")
       return location.pathname.startsWith("/secretary/active-conversations") || location.pathname.startsWith("/secretary/conversations");
     if (path === "/doctor/ai-conversations")
       return location.pathname === path || location.pathname.startsWith("/doctor/ai-conversations/");
-    if (path === "/analytics") return location.pathname === "/analytics" || location.pathname.startsWith("/analytics/");
     if (path.startsWith("/secretary/") && path !== "/secretary/dashboard")
       return location.pathname === path || location.pathname.startsWith(path + "/");
     return location.pathname === path;

@@ -24,11 +24,9 @@ const FaqManagementPage = lazy(() => import("@/pages/admin/FaqManagementPage"));
 const SpecialtiesPage = lazy(() => import("@/pages/admin/SpecialtiesPage"));
 const AdminDoctorRatingsPage = lazy(() => import("@/pages/admin/DoctorRatingsPage"));
 const StatisticsPage = lazy(() => import("@/pages/admin/StatisticsPage"));
-const ActivityLogsPage = lazy(() => import("@/pages/admin/ActivityLogsPage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SystemSettingsPage"));
 const AdminNotificationsPage = lazy(() => import("@/pages/admin/NotificationsPage"));
 const AdminProfilePage = lazy(() => import("@/pages/admin/ProfilePage"));
-const AdminAppointmentListPage = lazy(() => import("@/pages/admin/AppointmentListPage"));
 
 const DoctorDashboardPage = lazy(() => import("@/pages/doctor/DashboardPage"));
 const SchedulePage = lazy(() => import("@/pages/doctor/SchedulePage"));
@@ -67,16 +65,6 @@ const PatientNotificationsPage = lazy(() => import("@/pages/patient/Notification
 const PatientProfilePage = lazy(() => import("@/pages/patient/ProfilePage"));
 const PatientRatingsPage = lazy(() => import("@/pages/patient/RatingsPage"));
 const PatientSettingsPage = lazy(() => import("@/pages/patient/SettingsPage"));
-const AiAssistantHomePage = lazy(() => import("@/pages/shared/AiAssistantHomePage"));
-const AiConversationPage = lazy(() => import("@/pages/shared/AiConversationPage"));
-const AiConversationHistoryPage = lazy(() => import("@/pages/shared/AiConversationHistory"));
-
-const AnalyticsDashboardPage = lazy(() => import("@/pages/analytics/AnalyticsDashboardPage"));
-const AppointmentAnalyticsPage = lazy(() => import("@/pages/analytics/AppointmentAnalyticsPage"));
-const AiAnalyticsPage = lazy(() => import("@/pages/analytics/AiAnalyticsPage"));
-const PatientAnalyticsPage = lazy(() => import("@/pages/analytics/PatientAnalyticsPage"));
-const DoctorAnalyticsPage = lazy(() => import("@/pages/analytics/DoctorAnalyticsPage"));
-const CallAnalyticsPage = lazy(() => import("@/pages/analytics/CallAnalyticsPage"));
 
 const SuspenseWrapper = () => (
   <Suspense fallback={<LoadingScreen />}>
@@ -112,23 +100,11 @@ export default function App() {
                 <Route path={ROUTES.ADMIN_SPECIALTIES} element={<SpecialtiesPage />} />
                 <Route path={ROUTES.ADMIN_RATINGS} element={<AdminDoctorRatingsPage />} />
                 <Route path={ROUTES.ADMIN_STATISTICS} element={<StatisticsPage />} />
-                <Route path={ROUTES.ADMIN_ACTIVITY_LOGS} element={<ActivityLogsPage />} />
                 <Route path={ROUTES.ADMIN_SETTINGS} element={<SystemSettingsPage />} />
-                <Route path={ROUTES.ADMIN_APPOINTMENTS} element={<AdminAppointmentListPage />} />
                 <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<AdminNotificationsPage />} />
                 <Route path={ROUTES.ADMIN_PROFILE} element={<AdminProfilePage />} />
               </Route>
               <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
-              <Route path={ROUTES.AI_ASSISTANT_HOME} element={<AiAssistantHomePage />} />
-              <Route path={`${ROUTES.AI_ASSISTANT_CHAT}/:conversationId?`} element={<AiConversationPage />} />
-              <Route path={ROUTES.AI_ASSISTANT_HISTORY} element={<AiConversationHistoryPage />} />
-
-              <Route path={ROUTES.ANALYTICS_DASHBOARD} element={<AnalyticsDashboardPage />} />
-              <Route path={ROUTES.ANALYTICS_APPOINTMENTS} element={<AppointmentAnalyticsPage />} />
-              <Route path={ROUTES.ANALYTICS_AI} element={<AiAnalyticsPage />} />
-              <Route path={ROUTES.ANALYTICS_PATIENTS} element={<PatientAnalyticsPage />} />
-              <Route path={ROUTES.ANALYTICS_DOCTORS} element={<DoctorAnalyticsPage />} />
-              <Route path={ROUTES.ANALYTICS_CALLS} element={<CallAnalyticsPage />} />
 
               {/* Each role's pages are gated on that role. Previously any
                   signed-in user could open another role's dashboard; the API
