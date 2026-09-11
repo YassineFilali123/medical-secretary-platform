@@ -48,6 +48,7 @@ export default function LiveConsultationPage() {
   const [extendOpen, setExtendOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpTarget, setFollowUpTarget] = useState<{ appointmentId: number; patientName: string } | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<{ message: string; affected: AffectedAppointment[] } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>("patient");
@@ -94,6 +95,7 @@ export default function LiveConsultationPage() {
     try {
       await consultationService.endWithReport(consultation.appointmentId, report);
       setReportOpen(false);
+      setFollowUpTarget({ appointmentId: consultation.appointmentId, patientName: consultation.patientName });
       setFollowUpOpen(true);
       return true;
     } catch (err) {
@@ -493,10 +495,11 @@ export default function LiveConsultationPage() {
 
       <FollowUpModal
         open={followUpOpen}
-        appointmentId={consultation?.appointmentId ?? 0}
-        patientName={consultation?.patientName ?? ""}
+        appointmentId={followUpTarget?.appointmentId ?? consultation?.appointmentId ?? 0}
+        patientName={followUpTarget?.patientName ?? consultation?.patientName ?? ""}
         onClose={() => {
           setFollowUpOpen(false);
+          setFollowUpTarget(null);
           reload();
         }}
       />
